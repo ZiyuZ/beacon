@@ -161,7 +161,8 @@ uv run beacon-demo --url http://192.168.1.10:8000 my_task   # 指向远端服务
 
 `GET /api/logs/{task}?after_id=N&limit=500` 返回 `id > N` 的日志，按 id 升序。仪表盘每秒轮询该接口增量追加，无需整页刷新。
 
-`DELETE /api/tasks/{task}?force=false` 删除该任务名下的**全部**日志行（没有单独的任务表）。成功返回 `{"ok": true, "deleted": N}`。若推断状态为 `running` 且未带 `force`，返回 **409**，避免误删仍在持续上报的任务；改用 `?force=true` 强制删除。没有日志的任务返回 **404**。
+`DELETE /api/tasks/{task}?force=false` 删除该任务名下的**全部**日志行（没有单独的任务表）。成功返回 `{"ok": true, "deleted": N}`。
+若推断状态为 `running` 且未带 `force`，返回 **409**，避免误删仍在持续上报的任务；改用 `?force=true` 强制删除。没有日志的任务返回 **404**。
 
 ```bash
 curl -X DELETE "http://your-server:8000/api/tasks/training_a" \
@@ -200,6 +201,10 @@ docker compose up --build -d
 - Tailwind CDN + Inter / JetBrains Mono，中文回退到系统字体（苹方、微软雅黑、思源黑体等），无需额外下载字体包。
 - 任务列表与详情页提供**清空 / 删除**按钮；浏览器会在每个标签页询问一次 Bearer Token（保存在 `sessionStorage`），除非服务端使用 `--no-auth`。
 - 移动端单列布局，自定义细滚动条。
+
+## 给 Code Agent 的 Skill
+
+如果你在其它项目里让 AI 编码助手（Cursor、Claude Code、Continue 等）协作，可以把 [`skills/beacon-logging/SKILL.md`](./skills/beacon-logging/SKILL.md) 拷到那个项目的 skills 目录（Cursor 的话是 `.cursor/skills/beacon-logging/SKILL.md`）。Agent 读到后就会知道何时建议接入 Beacon、向用户索取哪些环境变量、如何挂 Loguru / 标准库 `logging` / `curl`，以及一些命名与重试惯例。
 
 ## 目录结构
 

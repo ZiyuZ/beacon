@@ -231,6 +231,15 @@ persistent state.
   asks for your bearer token once per tab (stored in `sessionStorage`) unless
   the server runs with `--no-auth`.
 
+## Skill for code agents
+
+If you let coding agents (Claude Code, OpenCode, etc.) work on
+the projects you want monitored, drop
+[`skills/beacon-logging/SKILL.md`](./skills/beacon-logging/SKILL.md)
+into that project's skills directory. The agent then knows when to
+suggest Beacon, which env vars to ask for, how to wire Loguru / stdlib
+`logging` / curl, and which conventions to follow.
+
 ## Layout
 
 ```text
