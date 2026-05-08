@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
+	 viewBox="0 0 460 460" xml:space="preserve">
+<g>
+	<path style="fill:#064855;" d="M230,0C158.548,0,94.706,32.582,52.521,83.699L0.247,219.247C0.083,222.811,0,226.396,0,230
+		c0,93.937,56.315,174.721,137.025,210.433L406.659,82.711C364.469,32.162,300.99,0,230,0z"/>
+	<path style="fill:#03242B;" d="M459.754,219.261c-0.012-0.014-70.556-43.064-70.556-43.064L303,90l-77.78,50.717l97.754,299.716
+		C403.685,404.721,460,323.937,460,230C460,226.401,459.917,222.821,459.754,219.261z"/>
+	<path style="fill:#FF984C;" d="M322.969,440.42L303,218l-83-18l8.709,259.984C229.14,459.986,229.568,460,230,460
+		C263.089,460,294.539,452.999,322.969,440.42z"/>
+	<path style="fill:#FFC240;" d="M157,218l-19.969,222.42C165.461,452.999,196.911,460,230,460V200L157,218z"/>
+	<polygon style="fill:#FF1909;" points="303,218 230,218 220,168 303,178 	"/>
+	<rect x="157" y="178" style="fill:#FF5347;" width="73" height="40"/>
+	<path style="fill:#FFE1A0;" d="M406.654,82.723L303,110l-36,34l36,34l156.742,41.248
+		C457.356,167.409,437.812,120.055,406.654,82.723z"/>
+	<path style="fill:#FFF0CF;" d="M53.346,82.723L157,110l36,34l-36,34L0.258,219.248C2.644,167.409,22.188,120.055,53.346,82.723z"/>
+	<polygon style="fill:#FFF0CF;" points="303,110 303,178 230,178 220,100 	"/>
+	<rect x="157" y="110" style="fill:#FFFFFF;" width="73" height="68"/>
+	<polygon style="fill:#03242B;" points="250,400 230,400 220,340 230,340 250,340 	"/>
+	<rect x="210" y="340" style="fill:#064855;" width="20" height="60"/>
+	<polygon style="fill:#03242B;" points="250,308 230,308 220,248 230,248 250,248 	"/>
+	<rect x="210" y="248" style="fill:#064855;" width="20" height="60"/>
+	<polygon style="fill:#FF1909;" points="303,90 303,110 230,110 230,70 	"/>
+	<polygon style="fill:#FF5347;" points="230,70 230,110 157,110 157,90 	"/>
+	<polygon style="fill:#AA1106;" points="303,90 230,90 220,60 230,17 	"/>
+	<polygon style="fill:#FF1909;" points="230,17 230,90 157,90 	"/>
+</g>
+</svg>

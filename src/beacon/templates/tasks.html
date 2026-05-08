@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Tasks · Beacon{% endblock %}
+
+{% block header_right %}
+  <span class="text-[11px] text-slate-500">refreshes every 2s</span>
+{% endblock %}
+
+{% block content %}
+  <ul
+    id="task-list"
+    class="divide-y divide-slate-800 overflow-hidden rounded-xl border border-slate-800 bg-slate-900/40"
+    hx-get="/partials/tasks"
+    hx-trigger="load, every 2s"
+    hx-swap="innerHTML"
+  >
+    {% include "partials/task_list.html" %}
+  </ul>
+{% endblock %}

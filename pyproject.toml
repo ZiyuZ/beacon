@@ -1,0 +1,32 @@
+[project]
+name = "beacon"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+authors = [
+  { name = "ZiyuZ", email = "19648091+ZiyuZ@users.noreply.github.com" }
+]
+dependencies = [
+  "fastapi[standard-no-fastapi-cloud-cli]>=0.136.1",
+  "httpx>=0.28.1",
+  "jinja2>=3.1.6",
+  "loguru>=0.7.3",
+  "python-multipart>=0.0.27",
+  "sqlmodel>=0.0.38",
+  "typer>=0.25.1",
+  "uvicorn[standard]>=0.46.0",
+]
+
+[project.scripts]
+beacon = "beacon.cli:app"
+beacon-demo = "beacon.client.demo:app"
+
+[project.optional-dependencies]
+client = [
+    "loguru>=0.7.3",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.8,<0.12.0"]
+build-backend = "uv_build"

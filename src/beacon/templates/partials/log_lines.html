@@ -1,0 +1,23 @@
+{% for entry in entries %}
+  {% set msg = entry.message %}
+  {% set extra_lines = msg.count("\n") %}
+  <div
+    data-log-id="{{ entry.id }}"
+    data-level="{{ entry.level }}"
+    class="log-row whitespace-pre-wrap break-words"
+    style="overflow-wrap: anywhere;"
+  >
+    <span class="tabular-nums text-slate-500">{{ entry.timestamp.strftime("%H:%M:%S") }}</span>
+    <span class="level-{{ entry.level }} font-semibold">[{{ "%-8s" | format(entry.level) }}]</span>
+    {% if extra_lines > 0 %}
+      {% set first, _, rest = msg.partition("\n") %}
+      <details>
+        <summary
+          ><span class="text-slate-100">{{ first }}</span><span class="log-more">+{{ extra_lines }} {{ "line" if extra_lines == 1 else "lines" }}</span></summary
+        ><div class="log-rest ml-2 border-l border-slate-700 pl-3 text-slate-300">{{ rest }}</div>
+      </details>
+    {% else %}
+      <span class="text-slate-100">{{ msg }}</span>
+    {% endif %}
+  </div>
+{% endfor %}

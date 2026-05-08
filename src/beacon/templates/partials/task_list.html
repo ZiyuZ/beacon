@@ -1,0 +1,48 @@
+{% if not tasks %}
+  <li class="px-6 py-12 text-center">
+    <div
+      class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-slate-700 bg-slate-800/50 text-slate-300"
+      aria-hidden="true"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 0 1 9-9" />
+        <path d="M3 12a9 9 0 0 0 9 9" />
+        <path d="M7 12a5 5 0 0 1 5-5" />
+        <path d="M7 12a5 5 0 0 0 5 5" />
+        <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+      </svg>
+    </div>
+    <p class="text-sm font-medium text-slate-100">No tasks yet</p>
+    <p class="mt-1 text-xs text-slate-400">
+      Send something with <code class="rounded bg-slate-800 px-1 py-0.5 text-[11px] text-slate-200">POST /api/log</code>,
+      or stream fake logs:
+    </p>
+    <pre class="mx-auto mt-3 inline-block rounded-md bg-slate-800/80 px-3 py-2 text-left text-[11px] text-slate-200">uv run beacon-demo my_task</pre>
+  </li>
+{% endif %}
+{% for task in tasks %}
+  <li>
+    <a
+      href="/tasks/{{ task.task | urlencode }}"
+      class="flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-slate-800/50 active:bg-slate-800"
+    >
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-2">
+          <span class="truncate font-medium text-slate-100">{{ task.task }}</span>
+          <span
+            class="status-{{ task.status }} rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+          >{{ task.status }}</span>
+        </div>
+        <p class="mt-1 truncate text-xs text-slate-400">
+          <span class="level-{{ task.last_level }} font-semibold">[{{ task.last_level }}]</span>
+          {{ task.last_message.splitlines()[0] if task.last_message else "" }}
+        </p>
+      </div>
+      <time
+        class="shrink-0 text-[11px] tabular-nums text-slate-500"
+        data-relative
+        datetime="{{ task.last_seen.isoformat() }}"
+      >{{ task.last_seen.strftime("%H:%M:%S") }}</time>
+    </a>
+  </li>
+{% endfor %}
