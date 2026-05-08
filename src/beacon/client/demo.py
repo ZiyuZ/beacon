@@ -142,7 +142,11 @@ def demo(
         help="Send a single explicit message instead of generated ones (implies --count 1).",
     ),
     level: str = typer.Option(
-        "INFO", "--level", "-L", help="Level used together with --message.", case_sensitive=False
+        "INFO",
+        "--level",
+        "-L",
+        help="Level used together with --message.",
+        case_sensitive=False,
     ),
 ) -> None:
     """Stream fake training logs to a Beacon server."""
@@ -156,7 +160,9 @@ def demo(
 
     typer.secho(
         f"-> {url}/api/log as task='{task}', every {interval:.2f}s"
-        + (f", {target_count} log(s)" if target_count else ", forever (Ctrl+C to stop)"),
+        + (
+            f", {target_count} log(s)" if target_count else ", forever (Ctrl+C to stop)"
+        ),
         fg=typer.colors.CYAN,
         err=True,
     )

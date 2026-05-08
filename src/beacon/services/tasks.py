@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 
 from pydantic import BaseModel
-from sqlalchemy import func
+from sqlalchemy import delete, func
 from sqlmodel import Session, select, col
 
 from beacon.models.log_entry import LogEntry
@@ -98,3 +98,42 @@ def list_task_summaries(
             )
         )
     return summaries
+
+
+def delete_task_logs(
+    session: Session,
+    task_name: str,
+    *,
+    force: bool,
+    running_window_seconds: int,
+    now: datetime | None = None,
+) -> tuple[str, int]:
+    """Remove every ``LogEntry`` row for ``task_name``.
+
+    Returns ``('deleted', n)``, ``('not_found', 0)``, or ``('active', 0)``
+    when the latest-derived status is ``running`` and ``force`` is false.
+    """
+
+    count_stmt = (
+        select(func.count())
+        .select_from(LogEntry)
+        .where(col(LogEntry.task_name) == task_name)
+    )
+    total = session.exec(count_stmt).one()
+    if total == 0:
+        return ("not_found", 0)
+
+    if not force:
+        summaries = list_task_summaries(
+            session,
+            now=now,
+            running_window_seconds=running_window_seconds,
+        )
+        for s in summaries:
+            if s.task == task_name and s.status == TaskStatus.running:
+                return ("active", 0)
+
+    del_stmt = delete(LogEntry).where(col(LogEntry.task_name) == task_name)
+    session.exec(del_stmt)
+    session.commit()
+    return ("deleted", total)

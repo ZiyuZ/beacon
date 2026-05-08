@@ -2,13 +2,13 @@
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlmodel import Session, select, col
 
 from beacon.api.deps import get_session, get_settings, require_token
 from beacon.config import Settings
 from beacon.models.log_entry import LogEntry, LogEntryCreate, LogEntryRead
-from beacon.services.tasks import TaskSummary, list_task_summaries
+from beacon.services.tasks import TaskSummary, delete_task_logs, list_task_summaries
 
 router = APIRouter(prefix="/api", dependencies=[Depends(require_token)])
 
@@ -65,3 +65,26 @@ def get_logs(
     )
     rows = session.exec(stmt).all()
     return [LogEntryRead.model_validate(row, from_attributes=True) for row in rows]
+
+
+@router.delete("/tasks/{task}")
+def delete_task(
+    task: str,
+    force: bool = Query(False, description="Delete even if the task looks active."),
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, bool | int]:
+    outcome, deleted = delete_task_logs(
+        session,
+        task,
+        force=force,
+        running_window_seconds=settings.running_window_seconds,
+    )
+    if outcome == "not_found":
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="task not found")
+    if outcome == "active":
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail="task is active (received logs recently); retry with force=true",
+        )
+    return {"ok": True, "deleted": deleted}

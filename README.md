@@ -140,7 +140,7 @@ uv run beacon-demo --url http://192.168.1.10:8000 my_task   # remote server
 
 ## API
 
-Three routes under `/api`. All require `Authorization: Bearer <token>`
+Three JSON routes under `/api`. All require `Authorization: Bearer <token>`
 unless the server was started with `--no-auth`.
 
 `POST /api/log` ingests one log line.
@@ -176,7 +176,18 @@ unless the server was started with `--no-auth`.
 `id > N` in ascending order. The dashboard polls this every second to
 append new lines without re-fetching the page.
 
-## Configuration
+`DELETE /api/tasks/{task}?force=false` removes **every** stored log line for
+that task name (there is no separate tasks table). Returns `{"ok": true, "deleted": N}`.
+If the inferred status is `running` and `force` is false, responds with **409**
+so you do not wipe a task that is still receiving logs by accident; retry with
+`?force=true`. Unknown tasks return **404**.
+
+From curl:
+
+```bash
+curl -X DELETE "http://your-server:8000/api/tasks/training_a" \
+  -H "Authorization: Bearer $TOKEN"
+```
 
 All knobs are environment variables; the CLI flags above just write into
 this same set so flags and env behave identically.
@@ -216,7 +227,9 @@ persistent state.
 - Tailwind CDN + Inter / JetBrains Mono with CJK system fallbacks
   (PingFang SC, Microsoft Yahei, Source Han Sans) so Chinese log lines render
   cleanly on macOS / Windows / Linux without extra downloads.
-- Mobile-first single-column layout with a custom thin scrollbar.
+- Task list and detail page include **Clear / delete** controls; the browser
+  asks for your bearer token once per tab (stored in `sessionStorage`) unless
+  the server runs with `--no-auth`.
 
 ## Layout
 

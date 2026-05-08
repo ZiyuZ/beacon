@@ -410,5 +410,68 @@
         }
       })();
     </script>
+    <script>
+      window.beaconDeleteTask = async function (target) {
+        var task =
+          typeof target === "string"
+            ? target
+            : target && target.getAttribute("data-task");
+        if (!task) return;
+        if (
+          !confirm(
+            'Delete all logs for "' +
+              task +
+              '"? This removes every stored line for that task.'
+          )
+        ) {
+          return;
+        }
+
+        async function del(force) {
+          var token = sessionStorage.getItem("beaconToken");
+          var headers = {};
+          if (token) headers["Authorization"] = "Bearer " + token;
+          var url =
+            "/api/tasks/" +
+            encodeURIComponent(task) +
+            (force ? "?force=true" : "");
+          return fetch(url, { method: "DELETE", headers: headers });
+        }
+
+        var res = await del(false);
+        if (res.status === 401) {
+          var t = prompt(
+            "Bearer token (saved in this tab until you clear site data):"
+          );
+          if (t === null) return;
+          sessionStorage.setItem("beaconToken", t);
+          res = await del(false);
+        }
+        if (res.status === 409) {
+          if (
+            !confirm(
+              "This task is still active (logs in the last window). Delete anyway?"
+            )
+          ) {
+            return;
+          }
+          res = await del(true);
+        }
+        if (!res.ok) {
+          var msg = await res.text();
+          alert("Delete failed (" + res.status + "): " + msg.slice(0, 200));
+          return;
+        }
+        var list = document.getElementById("task-list");
+        if (list && typeof htmx !== "undefined") {
+          htmx.ajax("GET", "/partials/tasks", {
+            target: "#task-list",
+            swap: "innerHTML",
+          });
+        } else {
+          window.location.href = "/";
+        }
+      };
+    </script>
   </body>
 </html>

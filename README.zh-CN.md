@@ -128,7 +128,7 @@ uv run beacon-demo --url http://192.168.1.10:8000 my_task   # 指向远端服务
 
 ## API
 
-`/api` 下三条路由。除非启动时带了 `--no-auth`，否则均需 `Authorization: Bearer <token>`。
+`/api` 下的 JSON 路由。除非启动时带了 `--no-auth`，否则均需 `Authorization: Bearer <token>`。
 
 `POST /api/log` 写入一条日志：
 
@@ -161,6 +161,13 @@ uv run beacon-demo --url http://192.168.1.10:8000 my_task   # 指向远端服务
 
 `GET /api/logs/{task}?after_id=N&limit=500` 返回 `id > N` 的日志，按 id 升序。仪表盘每秒轮询该接口增量追加，无需整页刷新。
 
+`DELETE /api/tasks/{task}?force=false` 删除该任务名下的**全部**日志行（没有单独的任务表）。成功返回 `{"ok": true, "deleted": N}`。若推断状态为 `running` 且未带 `force`，返回 **409**，避免误删仍在持续上报的任务；改用 `?force=true` 强制删除。没有日志的任务返回 **404**。
+
+```bash
+curl -X DELETE "http://your-server:8000/api/tasks/training_a" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
 ## 配置
 
 环境变量与 CLI 参数一一对应（CLI 会把选项写入同一套环境变量）。
@@ -191,6 +198,7 @@ docker compose up --build -d
 - 顶栏圆点随 HTMX 请求成功/失败变色，一眼看出面板是否在刷新。
 - 详情页支持按级别筛选、消息子串搜索、多行堆栈折叠（`+N lines`）、向上滚动暂停后底部「▼ N 条新日志」提示、面包屑导航。
 - Tailwind CDN + Inter / JetBrains Mono，中文回退到系统字体（苹方、微软雅黑、思源黑体等），无需额外下载字体包。
+- 任务列表与详情页提供**清空 / 删除**按钮；浏览器会在每个标签页询问一次 Bearer Token（保存在 `sessionStorage`），除非服务端使用 `--no-auth`。
 - 移动端单列布局，自定义细滚动条。
 
 ## 目录结构
