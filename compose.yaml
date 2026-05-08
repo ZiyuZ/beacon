@@ -4,7 +4,7 @@ services:
     container_name: beacon
     restart: always
     ports:
-      - "8000:8000"
+      - "44395:8000"
     environment:
       BEACON_API_TOKEN: ${BEACON_API_TOKEN:?set BEACON_API_TOKEN in .env}
       BEACON_SQLITE_PATH: /app/data/beacon.db
