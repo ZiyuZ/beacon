@@ -1,3 +1,8 @@
+<!-- markdownlint-disable MD013 MD033 MD041 -->
+<p align="right">
+  English | <a href="./README.zh-CN.md">简体中文</a>
+</p>
+
 # Beacon
 
 A lightweight personal log dashboard. Your scripts push logs over HTTP, you
@@ -55,7 +60,7 @@ copy the token around for local testing.
 
 ## Sending real logs from your scripts
 
-Add Beacon to whichever project does the logging. you have two practical options:
+Add Beacon to whichever project does the logging. You have two practical options:
 
 ```bash
 # from git, with the optional `client` extra (loguru):
