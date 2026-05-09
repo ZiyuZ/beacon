@@ -153,6 +153,36 @@
         background-color: rgba(248, 113, 113, 0.15);
         color: #fca5a5;
       }
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        border-radius: 999px;
+        padding: 0.1rem 0.5rem;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .status-dot {
+        width: 0.46rem;
+        height: 0.46rem;
+        border-radius: 999px;
+        display: inline-block;
+        flex-shrink: 0;
+      }
+      .status-dot-running {
+        background: #86efac;
+        box-shadow: 0 0 0 3px rgba(134, 239, 172, 0.15);
+      }
+      .status-dot-inactive {
+        background: #cbd5e1;
+        box-shadow: 0 0 0 3px rgba(203, 213, 225, 0.12);
+      }
+      .status-dot-error {
+        background: #fca5a5;
+        box-shadow: 0 0 0 3px rgba(252, 165, 165, 0.14);
+      }
 
       /* Live indicator dot (header) */
       #live-dot {

@@ -13,6 +13,21 @@ from beacon.services.tasks import TaskSummary, delete_task_logs, list_task_summa
 router = APIRouter(prefix="/api", dependencies=[Depends(require_token)])
 
 
+def _normalize_payload_timestamp(ts: datetime) -> datetime:
+    """Normalize incoming timestamps to UTC.
+
+    If clients send naive datetimes, treat them as server-local wall-clock time.
+    This matches common script behavior (`datetime.now().isoformat()`) and avoids
+    accidentally shifting timestamps into the future by interpreting naive values
+    as UTC.
+    """
+
+    if ts.tzinfo is None:
+        local_tz = datetime.now().astimezone().tzinfo or timezone.utc
+        ts = ts.replace(tzinfo=local_tz)
+    return ts.astimezone(timezone.utc)
+
+
 @router.post("/log")
 def ingest_log(
     payload: LogEntryCreate,
@@ -20,8 +35,7 @@ def ingest_log(
     session: Session = Depends(get_session),
 ) -> dict[str, bool]:
     timestamp = payload.timestamp or datetime.now(timezone.utc)
-    if timestamp.tzinfo is None:
-        timestamp = timestamp.replace(tzinfo=timezone.utc)
+    timestamp = _normalize_payload_timestamp(timestamp)
 
     host = payload.host
     if host is None and request.client is not None:

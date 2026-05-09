@@ -21,6 +21,8 @@
   </li>
 {% endif %}
 {% for task in tasks %}
+  {% set status_key = task.status.value if task.status is not string else task.status %}
+  {% set status_label = "Running" if status_key == "running" else ("Error" if status_key == "error" else "Inactive") %}
   <li class="flex items-stretch divide-x divide-slate-800">
     <a
       href="/tasks/{{ task.task | urlencode }}"
@@ -30,8 +32,12 @@
         <div class="flex items-center gap-2">
           <span class="truncate font-medium text-slate-100">{{ task.task }}</span>
           <span
-            class="status-{{ task.status }} rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-          >{{ task.status }}</span>
+            class="status-pill status-{{ status_key }}"
+            title="Current task status"
+          >
+            <span class="status-dot status-dot-{{ status_key }}" aria-hidden="true"></span>
+            {{ status_label }}
+          </span>
         </div>
         <p class="mt-1 truncate text-xs text-slate-400">
           <span class="level-{{ task.last_level }} font-semibold">[{{ task.last_level }}]</span>
