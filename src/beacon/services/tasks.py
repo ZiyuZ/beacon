@@ -137,3 +137,38 @@ def delete_task_logs(
     session.exec(del_stmt)
     session.commit()
     return ("deleted", total)
+
+
+def delete_inactive_task_logs(
+    session: Session,
+    *,
+    running_window_seconds: int,
+    now: datetime | None = None,
+) -> tuple[int, int]:
+    """Delete logs for every currently inactive task.
+
+    Returns ``(tasks_deleted, rows_deleted)``.
+    """
+
+    summaries = list_task_summaries(
+        session,
+        now=now,
+        running_window_seconds=running_window_seconds,
+    )
+    inactive_tasks = [s.task for s in summaries if s.status == TaskStatus.inactive]
+    if not inactive_tasks:
+        return (0, 0)
+
+    count_stmt = (
+        select(func.count())
+        .select_from(LogEntry)
+        .where(col(LogEntry.task_name).in_(inactive_tasks))
+    )
+    total_rows = session.exec(count_stmt).one()
+    if total_rows == 0:
+        return (0, 0)
+
+    del_stmt = delete(LogEntry).where(col(LogEntry.task_name).in_(inactive_tasks))
+    session.exec(del_stmt)
+    session.commit()
+    return (len(inactive_tasks), total_rows)

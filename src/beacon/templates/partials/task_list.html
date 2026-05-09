@@ -21,7 +21,12 @@
   </li>
 {% endif %}
 {% for task in tasks %}
-  {% set status_key = task.status.value if task.status is not string else task.status %}
+  {% set status_raw = task.status|string %}
+  {% if "." in status_raw %}
+    {% set status_key = status_raw.split(".")[-1]|lower %}
+  {% else %}
+    {% set status_key = status_raw|lower %}
+  {% endif %}
   {% set status_label = "Running" if status_key == "running" else ("Error" if status_key == "error" else "Inactive") %}
   <li class="flex items-stretch divide-x divide-slate-800">
     <a

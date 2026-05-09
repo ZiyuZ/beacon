@@ -164,6 +164,9 @@ uv run beacon-demo --url http://192.168.1.10:8000 my_task   # 指向远端服务
 `DELETE /api/tasks/{task}?force=false` 删除该任务名下的**全部**日志行（没有单独的任务表）。成功返回 `{"ok": true, "deleted": N}`。
 若推断状态为 `running` 且未带 `force`，返回 **409**，避免误删仍在持续上报的任务；改用 `?force=true` 强制删除。没有日志的任务返回 **404**。
 
+`DELETE /api/tasks` 可一次性删除**当前所有 inactive 任务**的日志。
+返回 `{"ok": true, "deleted_tasks": T, "deleted_rows": R}`，其中 `T` 是被清理的任务数，`R` 是删除的日志总行数。
+
 ```bash
 curl -X DELETE "http://your-server:8000/api/tasks/training_a" \
   -H "Authorization: Bearer $TOKEN"
@@ -200,6 +203,7 @@ docker compose up --build -d
 - 详情页支持按级别筛选、消息子串搜索、多行堆栈折叠（`+N lines`）、向上滚动暂停后底部「▼ N 条新日志」提示、面包屑导航。
 - Tailwind CDN + Inter / JetBrains Mono，中文回退到系统字体（苹方、微软雅黑、思源黑体等），无需额外下载字体包。
 - 任务列表与详情页提供**清空 / 删除**按钮；浏览器会在每个标签页询问一次 Bearer Token（保存在 `sessionStorage`），除非服务端使用 `--no-auth`。
+- 任务卡片使用彩色状态徽标（圆点 + 文案）展示 `Running` / `Inactive` / `Error`，与右上角 live 指示风格一致。
 - 移动端单列布局，自定义细滚动条。
 
 ## 给 Code Agent 的 Skill

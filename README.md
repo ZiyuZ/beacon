@@ -182,6 +182,10 @@ If the inferred status is `running` and `force` is false, responds with **409**
 so you do not wipe a task that is still receiving logs by accident; retry with
 `?force=true`. Unknown tasks return **404**.
 
+`DELETE /api/tasks` removes logs for **all currently inactive tasks** in one shot.
+Returns `{"ok": true, "deleted_tasks": T, "deleted_rows": R}` where `T` is the
+number of task names removed and `R` is total deleted log rows.
+
 From curl:
 
 ```bash
@@ -230,6 +234,8 @@ persistent state.
 - Task list and detail page include **Clear / delete** controls; the browser
   asks for your bearer token once per tab (stored in `sessionStorage`) unless
   the server runs with `--no-auth`.
+- Task cards show a colored status badge (dot + label) for `Running`,
+  `Inactive`, and `Error`, matching the live indicator style.
 
 ## Skill for code agents
 

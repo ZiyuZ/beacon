@@ -8,7 +8,12 @@ from sqlmodel import Session, select, col
 from beacon.api.deps import get_session, get_settings, require_token
 from beacon.config import Settings
 from beacon.models.log_entry import LogEntry, LogEntryCreate, LogEntryRead
-from beacon.services.tasks import TaskSummary, delete_task_logs, list_task_summaries
+from beacon.services.tasks import (
+    TaskSummary,
+    delete_inactive_task_logs,
+    delete_task_logs,
+    list_task_summaries,
+)
 
 router = APIRouter(prefix="/api", dependencies=[Depends(require_token)])
 
@@ -102,3 +107,19 @@ def delete_task(
             detail="task is active (received logs recently); retry with force=true",
         )
     return {"ok": True, "deleted": deleted}
+
+
+@router.delete("/tasks")
+def delete_inactive_tasks(
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, bool | int]:
+    tasks_deleted, rows_deleted = delete_inactive_task_logs(
+        session,
+        running_window_seconds=settings.running_window_seconds,
+    )
+    return {
+        "ok": True,
+        "deleted_tasks": tasks_deleted,
+        "deleted_rows": rows_deleted,
+    }

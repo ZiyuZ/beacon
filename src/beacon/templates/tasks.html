@@ -3,6 +3,12 @@
 {% block title %}Tasks · Beacon{% endblock %}
 
 {% block header_right %}
+  <button
+    type="button"
+    class="rounded-md border border-red-900/50 bg-red-950/30 px-2 py-1 text-[11px] font-medium text-red-300 transition hover:bg-red-950/50"
+    onclick="beaconDeleteInactiveTasks();"
+    title="Delete all logs for inactive tasks"
+  >Clear inactive</button>
   <span class="text-[11px] text-slate-500">refreshes every 2s</span>
 {% endblock %}
 

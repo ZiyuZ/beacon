@@ -441,6 +441,27 @@
       })();
     </script>
     <script>
+      window.beaconAuthFetch = async function (url, options, authPrompt) {
+        var opts = options || {};
+        var headers = Object.assign({}, opts.headers || {});
+        var token = sessionStorage.getItem("beaconToken");
+        if (token) headers["Authorization"] = "Bearer " + token;
+        opts.headers = headers;
+
+        var res = await fetch(url, opts);
+        if (res.status !== 401) return res;
+
+        var t = prompt(
+          authPrompt ||
+            "Bearer token (saved in this tab until you clear site data):"
+        );
+        if (t === null) return res;
+        sessionStorage.setItem("beaconToken", t);
+        opts.headers["Authorization"] = "Bearer " + t;
+        return fetch(url, opts);
+      };
+    </script>
+    <script>
       window.beaconDeleteTask = async function (target) {
         var task =
           typeof target === "string"
@@ -458,25 +479,14 @@
         }
 
         async function del(force) {
-          var token = sessionStorage.getItem("beaconToken");
-          var headers = {};
-          if (token) headers["Authorization"] = "Bearer " + token;
           var url =
             "/api/tasks/" +
             encodeURIComponent(task) +
             (force ? "?force=true" : "");
-          return fetch(url, { method: "DELETE", headers: headers });
+          return window.beaconAuthFetch(url, { method: "DELETE" });
         }
 
         var res = await del(false);
-        if (res.status === 401) {
-          var t = prompt(
-            "Bearer token (saved in this tab until you clear site data):"
-          );
-          if (t === null) return;
-          sessionStorage.setItem("beaconToken", t);
-          res = await del(false);
-        }
         if (res.status === 409) {
           if (
             !confirm(
@@ -492,6 +502,36 @@
           alert("Delete failed (" + res.status + "): " + msg.slice(0, 200));
           return;
         }
+        var list = document.getElementById("task-list");
+        if (list && typeof htmx !== "undefined") {
+          htmx.ajax("GET", "/partials/tasks", {
+            target: "#task-list",
+            swap: "innerHTML",
+          });
+        } else {
+          window.location.href = "/";
+        }
+      };
+    </script>
+    <script>
+      window.beaconDeleteInactiveTasks = async function () {
+        if (
+          !confirm(
+            "Delete all logs for inactive tasks? Running and error tasks are kept."
+          )
+        ) {
+          return;
+        }
+        var res = await window.beaconAuthFetch("/api/tasks", { method: "DELETE" });
+        if (!res.ok) {
+          var msg = await res.text();
+          alert("Delete failed (" + res.status + "): " + msg.slice(0, 200));
+          return;
+        }
+        var data = await res.json();
+        var tasks = data.deleted_tasks || 0;
+        var rows = data.deleted_rows || 0;
+        alert("Deleted " + tasks + " inactive task(s), " + rows + " log line(s).");
         var list = document.getElementById("task-list");
         if (list && typeof htmx !== "undefined") {
           htmx.ajax("GET", "/partials/tasks", {
