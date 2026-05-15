@@ -17,7 +17,7 @@ from beacon.models.log_entry import LogEntry, LogEntryCreate, LogEntryRead
 from beacon.services.tasks import (
     TASK_DONE_LEVEL,
     TaskSummary,
-    delete_inactive_task_logs,
+    delete_finished_task_logs,
     delete_task_logs,
     list_task_summaries,
 )
@@ -151,11 +151,11 @@ def delete_task(
 
 
 @router.delete("/tasks")
-def delete_inactive_tasks(
+def delete_finished_tasks(
     session: Session = Depends(get_session),
     settings: Settings = Depends(get_settings),
 ) -> dict[str, bool | int]:
-    tasks_deleted, rows_deleted = delete_inactive_task_logs(
+    tasks_deleted, rows_deleted = delete_finished_task_logs(
         session,
         running_window_seconds=settings.running_window_seconds,
     )
@@ -175,7 +175,7 @@ def mark_task_done(
     """Mark *task* as finished by inserting a ``__TASK_DONE__`` sentinel entry.
 
     Once the sentinel becomes the latest log for the task, ``compute_status``
-    will return ``inactive`` regardless of the time window.
+    will return ``disconnected`` regardless of the time window.
     """
 
     host = request.client.host if request.client is not None else None

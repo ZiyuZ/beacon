@@ -14,7 +14,8 @@
 
 - **服务端**（`beacon`）：FastAPI，REST 接口 + HTMX 小界面；数据存在单个 SQLite 文件里。支持 JWT 登录（浏览器）和静态 token（脚本）两种认证方式。
 - **客户端**（`beacon.client.BeaconClient`）：Loguru 远端 sink，把日志发到服务端；另有 `beacon-demo` 命令行用于测试日志。
-- **任务状态**：最近 30 秒内有日志则为 `running`；最近一条是 `ERROR`/`CRITICAL` 则为 `error`；否则 `inactive`。支持通过 `POST /api/tasks/{task}/done` 主动标记任务完成。
+- **任务状态**：`running`（活跃）、`error`（最新为 ERROR/CRITICAL）、`disconnected`（带心跳静默30秒/无心跳静默30分钟）、`inactive`（正常退出）。支持通过 `POST /api/tasks/{task}/done` 主动标记完成。
+- **心跳**（`BeaconClient(heartbeat=10)`）：可选自动保活。启用后每 N 秒发送心跳包，服务端在心跳停止后约30秒内检测到断联并标记为 `disconnected`，心跳条目在前端自动隐藏。
 
 这不是 ELK/Loki 替代品，也不是多用户平台或 SSH 终端——只适合少量常驻脚本的个人监控面板。
 
@@ -71,7 +72,11 @@ uv add --editable "../beacon[server]"   # full server
 from loguru import logger
 from beacon.client import BeaconClient
 
-beacon = BeaconClient(url="http://your-server:8000", token="NSxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+beacon = BeaconClient(
+    url="http://your-server:8000",
+    token="NSxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    heartbeat=10,  # 可选：每 10 秒自动心跳
+)
 
 logger.add(
     beacon.sink(task="training_a"),
@@ -85,6 +90,12 @@ logger.info("started")
 # 任务完成后主动标记结束
 beacon.mark_done(task="training_a")
 ```
+
+使用 `BeaconClient` 后任务状态完全自动管理：
+1. `beacon.sink(task=...)` → 自动发送 `▶ STARTED` 标记
+2. `heartbeat=10` → 每 10 秒心跳（前端隐藏），心跳停止约 30 秒后标记为 `disconnected`
+3. 脚本正常退出 → `atexit` 自动发送 `⬥ DISCONNECTED ⬥`
+4. 无活动 30 分钟 → `disconnected`
 
 如果不想引入依赖，任意 HTTP 客户端直接调用 `POST /api/log` 即可：
 
@@ -111,7 +122,7 @@ uv run beacon -h
 | `--token` | 见下方 | 依次读取 `--token` → `BEACON_API_TOKEN` → `data/beacon.token` |
 | `--no-auth` | 关闭 | 关闭鉴权，仅限可信内网 |
 | `--db` | `data/beacon.db` | SQLite 路径，亦可设 `BEACON_SQLITE_PATH` |
-| `--running-window-s` | `30` | 多少秒无新日志视为 `inactive` |
+| `--running-window-s` | `1800` (30min) | 多少秒无新日志视为 `disconnected` |
 | `--workers` | `1` | 除非前置共享存储，否则保持 1 |
 | `--version`，`-V` | | 打印版本号 |
 
@@ -171,7 +182,7 @@ uv run beacon-demo --url http://192.168.1.10:8000 my_task   # 指向远端服务
 `DELETE /api/tasks/{task}?force=false` 删除该任务名下的**全部**日志行（没有单独的任务表）。成功返回 `{"ok": true, "deleted": N}`。
 若推断状态为 `running` 且未带 `force`，返回 **409**，避免误删仍在持续上报的任务；改用 `?force=true` 强制删除。没有日志的任务返回 **404**。
 
-`DELETE /api/tasks` 可一次性删除**当前所有 inactive 任务**的日志。
+`DELETE /api/tasks` 可一次性删除**当前所有 finished 任务（inactive + disconnected）**的日志。
 返回 `{"ok": true, "deleted_tasks": T, "deleted_rows": R}`，其中 `T` 是被清理的任务数，`R` 是删除的日志总行数。
 
 ```bash
@@ -187,7 +198,7 @@ curl -X DELETE "http://your-server:8000/api/tasks/training_a" \
 | --- | --- | --- |
 | `BEACON_API_TOKEN` | （首次自动生成） | 共享 Bearer Token；设为空字符串则关闭鉴权 |
 | `BEACON_SQLITE_PATH` | `data/beacon.db` | SQLite 文件路径 |
-| `BEACON_RUNNING_WINDOW_S` | `30` | 多少秒无日志视为 `inactive` |
+| `BEACON_RUNNING_WINDOW_S` | `1800` (30min) | 多少秒无日志视为 `disconnected` |
 
 仓库内置 `.env.example`，配合 Compose 时可复制为 `.env`。
 
@@ -210,7 +221,7 @@ docker compose up --build -d
 - 详情页支持按级别筛选、消息子串搜索、多行堆栈折叠（`+N lines`）、向上滚动暂停后底部「▼ N 条新日志」提示、面包屑导航。
 - Tailwind CDN + Inter / JetBrains Mono，中文回退到系统字体（苹方、微软雅黑、思源黑体等），无需额外下载字体包。
 - 任务列表与详情页提供**清空 / 删除**按钮；浏览器会在每个标签页询问一次 Bearer Token（保存在 `sessionStorage`），除非服务端使用 `--no-auth`。
-- 任务卡片使用彩色状态徽标（圆点 + 文案）展示 `Running` / `Inactive` / `Error`，与右上角 live 指示风格一致。
+- 任务卡片使用彩色状态徽标展示 `Running` / `Inactive` / `Disconnected` / `Error`。
 - 移动端单列布局，自定义细滚动条。
 
 ## 给 Code Agent 的 Skill

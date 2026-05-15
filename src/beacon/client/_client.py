@@ -24,6 +24,8 @@ import atexit
 import os
 import socket
 import sys
+import threading
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
@@ -83,6 +85,7 @@ class BeaconClient:
         token: str | None = None,
         host: str | None = None,
         timeout: float = 3.0,
+        heartbeat: float = 0,
     ) -> None:
         self._base_url = _resolve_url(url).rstrip("/")
         self._default_host = host or socket.gethostname()
@@ -98,7 +101,19 @@ class BeaconClient:
         # Shared httpx client reused by sink, _post_log, and mark_done.
         self._http = httpx.Client(timeout=timeout, headers=self._headers)
 
+        if heartbeat > 0:
+            self._hb_interval = heartbeat
+            t = threading.Thread(target=self._heartbeat_loop, daemon=True)
+            t.start()
+
         atexit.register(self._shutdown)
+
+    def _heartbeat_loop(self) -> None:
+        """Background thread: send HEARTBEAT sentinels for all tracked tasks."""
+        while not self._finalized:
+            time.sleep(self._hb_interval)
+            for task in list(self._done_tasks):
+                self._post_log(task, "__TASK_HEARTBEAT__", "hb")
 
     def _post_log(self, task: str, level: str, message: str) -> None:
         """Post a single log entry to the server (best-effort)."""

@@ -186,26 +186,19 @@
       color: #86efac;
     }
 
-    .status-inactive {
-      background-color: rgba(148, 163, 184, 0.15);
-      color: #cbd5e1;
-    }
-
     .status-error {
       background-color: rgba(248, 113, 113, 0.15);
       color: #fca5a5;
     }
 
-    .status-crashed {
-      background-color: rgba(248, 113, 113, 0.25);
-      color: #fca5a5;
-      font-weight: 600;
+    .status-disconnected {
+      background-color: rgba(148, 163, 184, 0.15);
+      color: #cbd5e1;
     }
 
-    .status-dot-crashed {
-      background: #f87171;
-      box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2);
-      animation: none;
+    .status-dot-disconnected {
+      background: #cbd5e1;
+      box-shadow: 0 0 0 3px rgba(203, 213, 225, 0.12);
     }
 
     .status-pill {
@@ -231,11 +224,6 @@
     .status-dot-running {
       background: #86efac;
       box-shadow: 0 0 0 3px rgba(134, 239, 172, 0.15);
-    }
-
-    .status-dot-inactive {
-      background: #cbd5e1;
-      box-shadow: 0 0 0 3px rgba(203, 213, 225, 0.12);
     }
 
     .status-dot-error {
@@ -839,7 +827,7 @@
           ? target
           : target && target.getAttribute("data-task");
       if (!task) return;
-      if (!confirm('Mark "' + task + '" as done? The task status will flip to inactive.')) return;
+      if (!confirm('Mark "' + task + '" as done? The task status will flip to disconnected.')) return;
       target.disabled = true;
       var res = await window.beaconAuthFetch(
         "/api/tasks/" + encodeURIComponent(task) + "/done",
@@ -853,10 +841,10 @@
       }
     };
 
-    window.beaconDeleteInactiveTasks = async function () {
+    window.beaconDeleteFinishedTasks = async function () {
       if (
         !confirm(
-          "Delete all logs for inactive tasks? Running and error tasks are kept."
+          "Delete all logs for finished tasks?"
         )
       ) {
         return;
@@ -870,7 +858,7 @@
       var data = await res.json();
       var tasks = data.deleted_tasks || 0;
       var rows = data.deleted_rows || 0;
-      alert("Deleted " + tasks + " inactive task(s), " + rows + " log line(s).");
+      alert("Deleted " + tasks + " task(s), " + rows + " log line(s).");
       var list = document.getElementById("task-list");
       if (list && typeof htmx !== "undefined") {
         htmx.ajax("GET", "/partials/tasks", {

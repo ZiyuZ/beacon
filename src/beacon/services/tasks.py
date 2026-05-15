@@ -13,17 +13,17 @@ ERROR_LEVELS = frozenset({"ERROR", "CRITICAL"})
 TASK_DONE_LEVEL = "__TASK_DONE__"
 TASK_CONNECT_LEVEL = "__TASK_CONNECT__"
 TASK_DISCONNECT_LEVEL = "__TASK_DISCONNECT__"
+TASK_HEARTBEAT_LEVEL = "__TASK_HEARTBEAT__"
 
 SENTINEL_LEVELS = frozenset(
-    {TASK_DONE_LEVEL, TASK_CONNECT_LEVEL, TASK_DISCONNECT_LEVEL}
+    {TASK_DONE_LEVEL, TASK_CONNECT_LEVEL, TASK_DISCONNECT_LEVEL, TASK_HEARTBEAT_LEVEL}
 )
 
 
 class TaskStatus(str, Enum):
     running = "running"
-    inactive = "inactive"
+    disconnected = "disconnected"
     error = "error"
-    crashed = "crashed"
 
 
 class TaskSummary(BaseModel):
@@ -49,42 +49,42 @@ def compute_status(
     *,
     now: datetime | None = None,
     running_window_seconds: int = 1800,
-    has_connect: bool = False,
+    heartbeat_timeout: int = 0,
 ) -> TaskStatus:
     """Derive a task status from its most recent log entry.
 
     Priority (first match wins):
 
-    1. ``__TASK_DONE__`` or ``__TASK_DISCONNECT__`` → ``inactive`` (clean exit).
-    2. Stale AND task has a ``__TASK_CONNECT__`` in its history → ``crashed``
-       (the script was using ``BeaconClient`` but never sent a disconnect).
-    3. Stale (no client, or legacy) → ``inactive``.
-    4. Recent ``ERROR`` / ``CRITICAL`` → ``error``.
+    1. ``__TASK_DONE__`` or ``__TASK_DISCONNECT__`` → ``disconnected`` (clean exit).
+    2. Stale (by ``heartbeat_timeout``) + latest is ``__TASK_HEARTBEAT__`` →
+       ``disconnected`` (heartbeat stopped).
+    3. Recent ``ERROR`` / ``CRITICAL`` → ``error``.
+    4. Stale (by ``running_window_seconds``) → ``disconnected``.
     5. Otherwise → ``running``.
     """
 
     now = now or datetime.now(timezone.utc)
 
-    # 1. Clean exit
     if last_level.upper() in (TASK_DONE_LEVEL, TASK_DISCONNECT_LEVEL):
-        return TaskStatus.inactive
+        return TaskStatus.disconnected
 
-    stale = now - _ensure_aware(last_seen) > timedelta(seconds=running_window_seconds)
+    age = now - _ensure_aware(last_seen)
 
-    # 2. Stale + has CONNECT in history → crashed (script used BeaconClient
-    #    but never sent a DISCONNECT / DONE before going silent).
-    if stale and has_connect:
-        return TaskStatus.crashed
+    if (
+        heartbeat_timeout > 0
+        and last_level.upper() == TASK_HEARTBEAT_LEVEL
+        and age > timedelta(seconds=heartbeat_timeout)
+    ):
+        return TaskStatus.disconnected
 
-    # 3. Stale, no CONNECT → inactive (legacy script, or genuinely idle)
-    if stale:
-        return TaskStatus.inactive
-
-    # 4. Recent ERROR / CRITICAL
     if last_level.upper() in ERROR_LEVELS:
         return TaskStatus.error
 
-    # 5. Running
+    stale = age > timedelta(seconds=running_window_seconds)
+
+    if stale:
+        return TaskStatus.disconnected
+
     return TaskStatus.running
 
 
@@ -111,25 +111,19 @@ def list_task_summaries(
     )
     rows = session.exec(stmt).all()
 
-    # Check which tasks have a __TASK_CONNECT__ in their history.
-    # Used to detect crashes: if a task ever called ``BeaconClient.sink()``
-    # but went silent without a DISCONNECT / DONE, it likely crashed.
-    connect_subq = (
-        select(LogEntry.task_name)
-        .where(col(LogEntry.level) == TASK_CONNECT_LEVEL)
-        .distinct()
-        .subquery()
-    )
-    connect_tasks = {r[0] for r in session.exec(select(connect_subq)).all()}
-
     summaries: list[TaskSummary] = []
     for row in rows:
+        # If the latest entry is a HEARTBEAT, use a shorter timeout (30s)
+        # for fast disconnection detection.
+        hb_timeout = (
+            min(running_window_seconds, 30) if row.level == TASK_HEARTBEAT_LEVEL else 0
+        )
         status = compute_status(
             row.timestamp,
             row.level,
             now=now,
             running_window_seconds=running_window_seconds,
-            has_connect=row.task_name in connect_tasks,
+            heartbeat_timeout=hb_timeout,
         )
         summaries.append(
             TaskSummary(
@@ -183,13 +177,13 @@ def delete_task_logs(
     return ("deleted", total)
 
 
-def delete_inactive_task_logs(
+def delete_finished_task_logs(
     session: Session,
     *,
     running_window_seconds: int,
     now: datetime | None = None,
 ) -> tuple[int, int]:
-    """Delete logs for every currently inactive task.
+    """Delete logs for every finished (disconnected) task.
 
     Returns ``(tasks_deleted, rows_deleted)``.
     """
@@ -199,20 +193,20 @@ def delete_inactive_task_logs(
         now=now,
         running_window_seconds=running_window_seconds,
     )
-    inactive_tasks = [s.task for s in summaries if s.status == TaskStatus.inactive]
-    if not inactive_tasks:
+    finishable = [s.task for s in summaries if s.status == TaskStatus.disconnected]
+    if not finishable:
         return (0, 0)
 
     count_stmt = (
         select(func.count())
         .select_from(LogEntry)
-        .where(col(LogEntry.task_name).in_(inactive_tasks))
+        .where(col(LogEntry.task_name).in_(finishable))
     )
     total_rows = session.exec(count_stmt).one()
     if total_rows == 0:
         return (0, 0)
 
-    del_stmt = delete(LogEntry).where(col(LogEntry.task_name).in_(inactive_tasks))
+    del_stmt = delete(LogEntry).where(col(LogEntry.task_name).in_(finishable))
     session.exec(del_stmt)
     session.commit()
-    return (len(inactive_tasks), total_rows)
+    return (len(finishable), total_rows)

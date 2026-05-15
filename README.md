@@ -19,10 +19,15 @@ no observability stack to babysit.
   browser sessions alongside the classic bearer token for scripts.
 - **Client** (`beacon.client.BeaconClient`): a Loguru sink that ships
   records to the server, plus a `beacon-demo` CLI for testing.
-- **Status inference**: a task is `running` if it produced a log in the
-  last 30s, `error` if its most recent log is `ERROR`/`CRITICAL`, `inactive`
-  otherwise. You can also explicitly mark a task as done via
-  `POST /api/tasks/{task}/done`.
+- **Status inference**: `running` (receiving logs), `error` (latest is
+  `ERROR`/`CRITICAL`), `disconnected` (silent for 30s with heartbeat,
+  or 30min without), `disconnected` (all finished states).
+  Tasks can be explicitly marked as done via `POST /api/tasks/{task}/done`.
+- **Heartbeat** (`BeaconClient(heartbeat=10)`): optional automatic keep-alive.
+  When enabled, the client sends a lightweight heartbeat every N seconds.
+  If heartbeats stop, the server detects disconnection within ~30s and
+  marks the task as `disconnected`. Heartbeat entries are hidden from
+  the log view automatically.
 
 What it is not: an ELK/Loki replacement, a multi-user system, an SSH
 terminal. It is a personal panel for a handful of long-running scripts.
@@ -87,7 +92,11 @@ Then add the sink to your existing Loguru setup:
 from loguru import logger
 from beacon.client import BeaconClient
 
-beacon = BeaconClient(url="http://your-server:8000", token="NSxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+beacon = BeaconClient(
+    url="http://your-server:8000",
+    token="NSxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    heartbeat=10,  # optional: auto heartbeat every 10s
+)
 
 logger.add(
     beacon.sink(task="training_a"),
@@ -99,10 +108,20 @@ logger.add(
 logger.info("started")
 ```
 
-When your script finishes cleanly, mark the task as done so it
-immediately shows as `inactive` instead of waiting for the timeout:
+### Task lifecycle (automatic)
+
+When using `BeaconClient`, task status is managed automatically:
+
+1. `beacon.sink(task=...)` → sends a `▶ STARTED` sentinel to the server.
+2. With `heartbeat=10` → a `__TASK_HEARTBEAT__` is sent every 10s (hidden
+   from the log view). If heartbeats stop, the task shows as `disconnected`
+   within ~30s.
+3. Script exits normally → `atexit` sends a `⬥ DISCONNECTED ⬥` sentinel.
+4. `beacon.mark_done(task="...")` → sends a `⬥ COMPLETED ⬥` sentinel.
+5. No activity for 30min → `disconnected`.
 
 ```python
+# Manual mark (explicit, same as clicking "Mark done" in the UI)
 beacon.mark_done(task="training_a")
 ```
 
@@ -133,7 +152,7 @@ uv run beacon -h
 | `--admin-password`  | _from env_           | Admin password for Web UI login. Falls back to `BEACON_ADMIN_PASSWORD`, then auto-generated. |
 | `--no-auth`         | off                  | Disables bearer auth entirely. Local trusted networks only.    |
 | `--db`              | `data/beacon.db`     | SQLite path. Also via `BEACON_SQLITE_PATH`.                    |
-| `--running-window-s`| `1800` (30min)       | Seconds without logs before a task is `inactive`.              |
+| `--running-window-s`| `1800` (30min)       | Seconds without logs before a task is `disconnected`.          |
 | `--workers`         | `1`                  | Keep at 1 unless you front it with shared storage.             |
 | `--version`, `-V`   |                      | Prints the installed version.                                  |
 
@@ -221,12 +240,13 @@ If the inferred status is `running` and `force` is false, responds with **409**
 so you do not wipe a task that is still receiving logs by accident; retry with
 `?force=true`. Unknown tasks return **404**.
 
-`DELETE /api/tasks` removes logs for **all currently inactive tasks** in one shot.
-Returns `{"ok": true, "deleted_tasks": T, "deleted_rows": R}` where `T` is the
-number of task names removed and `R` is total deleted log rows.
+`DELETE /api/tasks` removes logs for **all finished tasks** (disconnected)
+in one shot. Returns `{"ok": true, "deleted_tasks": T, "deleted_rows": R}`
+where `T` is the number of task names removed and `R` is total deleted log
+rows.
 
 `POST /api/tasks/{task}/done` marks a task as finished by inserting a
-`__TASK_DONE__` sentinel entry. The task immediately shows as `inactive`
+`__TASK_DONE__` sentinel entry. The task immediately shows as `disconnected`
 on the dashboard, regardless of the time window. If the script runs again
 and sends new logs, the sentinel is overridden and the task returns to
 `running` automatically.
@@ -251,7 +271,7 @@ this same set so flags and env behave identically.
 | `BEACON_API_TOKEN`        | _(auto-generated)_ | Shared bearer token. Empty string disables auth.              |
 | `BEACON_ADMIN_PASSWORD`   | _(auto-generated)_ | Admin password used by the Web UI login to obtain a JWT.      |
 | `BEACON_SQLITE_PATH`      | `data/beacon.db`   | Where to put the SQLite file.                                 |
-| `BEACON_RUNNING_WINDOW_S` | `1800` (30min)     | Seconds without logs before a task is considered `inactive`.  |
+| `BEACON_RUNNING_WINDOW_S` | `1800` (30min)     | Seconds without logs before a task is considered `disconnected`. |
 
 A starter `.env.example` is checked in; copy to `.env` for compose use.
 
@@ -287,7 +307,11 @@ persistent state.
   Enter the admin password printed at startup; the server returns a JWT
   stored in `localStorage` (survives browser restarts).
 - Task cards show a colored status badge (dot + label) for `Running`,
-  `Inactive`, and `Error`, matching the live indicator style.
+  `Error`, and `Disconnected` (finished).
+- Sentinel entries (`▶ STARTED`, `⬥ COMPLETED ⬥`, `⬥ DISCONNECTED ⬥`)
+  are rendered as centered separator lines, visually distinct from logs.
+- Each log line has a **level-colored left bar** for quick scanning on
+  mobile; the search bar on the task list page lets you filter by task name.
 
 ## Skill for code agents
 

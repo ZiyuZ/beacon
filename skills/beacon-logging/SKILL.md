@@ -59,7 +59,11 @@ Then:
 ```python
 from beacon.client import BeaconClient
 
-beacon = BeaconClient(url=os.environ["BEACON_URL"], token=os.environ.get("BEACON_TOKEN"))
+beacon = BeaconClient(
+    url=os.environ["BEACON_URL"],
+    token=os.environ.get("BEACON_TOKEN"),
+    heartbeat=10,  # optional: auto heartbeat every 10s
+)
 ```
 
 **B. Vendor the sink (no extra dependency).** Drop this file into the
@@ -91,6 +95,9 @@ class BeaconClient:
         beacon = BeaconClient(url="http://beacon:8000", token="secret")
         logger.add(beacon.sink(task="training_a"), enqueue=True)
         beacon.mark_done(task="training_a")
+
+    For the full version (heartbeat, auto-CONNECT/DISCONNECT), install
+    Beacon as a dependency and use ``beacon.client.BeaconClient`` instead.
     """
 
     def __init__(
@@ -154,7 +161,7 @@ class BeaconClient:
     """Tell the Beacon server that *task* has finished.
 
     Posts to ``{url}/api/tasks/{task}/done`` which inserts a
-    ``__TASK_DONE__`` sentinel so the task is shown as ``inactive``.
+    ``__TASK_DONE__`` sentinel so the task is shown as ``disconnected``.
     Errors are swallowed so this never crashes the caller.
     """
 
@@ -207,22 +214,25 @@ Three details that matter:
 - Wrapping in `if beacon_url:` lets the same code run unchanged when
   the env var is not set (CI, offline dev, etc.).
 
-### Step 3: surface task status (optional)
+### Step 3: automatic heartbeat (recommended for long-running scripts)
 
-For long-running scripts, end every loop iteration with a heartbeat
-log so Beacon's "running / inactive" detector knows you're alive even
-when there is nothing interesting to say:
+Enable built-in heartbeats for fast disconnection detection:
 
 ```python
-logger.debug("alive epoch=%d", epoch)   # any line within ~30s is enough
+beacon = BeaconClient(url="...", token="...", heartbeat=10)  # 10s interval
 ```
 
-Beacon flips a task to `inactive` after 30s of silence by default.
+The client sends a `__TASK_HEARTBEAT__` every N seconds (hidden from the
+log view). If heartbeats stop (crash / network loss / kill), the server
+detects disconnection within ~30s and marks the task as `disconnected`
+(red badge).
+
+Without heartbeats, Beacon detects silence after 30 minutes.
 
 ### Step 4: mark a task as done (optional)
 
 When a script finishes cleanly you can explicitly tell Beacon the task
-is complete so it shows as `inactive` immediately instead of waiting
+is complete so it shows as `disconnected` immediately instead of waiting
 for the time window to expire. This is purely cosmetic but helpful for
 short scripts that finish before the 30-minute window.
 
@@ -245,10 +255,10 @@ curl -X POST "$BEACON_URL/api/tasks/training_a/done" \
   -H "Authorization: Bearer $BEACON_TOKEN"
 ```
 
-Beacon inserts a `__TASK_DONE__` sentinel log entry. As soon as this
-entry becomes the latest line for the task, the status flips to
-`inactive`. If the script runs again and starts logging, a normal log
-line overrides the sentinel and the task returns to `running`.
+Beacon inserts a `__TASK_DONE__` sentinel log entry (shown as `⬥ COMPLETED ⬥`
+separator line). As soon as this entry becomes the latest line for the task,
+the status flips to `disconnected`. If the script runs again and starts logging,
+a normal log line overrides the sentinel and the task returns to `running`.
 
 ## Integration: stdlib `logging`
 
@@ -390,10 +400,11 @@ again — sinks do not survive `fork`/`spawn` automatically.
 | `[beacon.sink] 401` on stderr | Missing or wrong bearer token | Re-check `BEACON_TOKEN`; on the server, `cat data/beacon.token` |
 | Logs lag a few seconds | Server polls every 1s; sink uses `enqueue=True` | Expected; latency cap is ~1.5s |
 | Last few lines missing on script exit | Background queue not flushed | `logger.complete()` in a `finally` block |
-| Server's `/api/tasks` keeps showing `inactive` | No log within `BEACON_RUNNING_WINDOW_S` (1800s) | Add a periodic `logger.debug("alive")` heartbeat, or increase the window via `--running-window-s` |
-| Task is `inactive` too long after a `__TASK_DONE__` sentinel | That is expected | It stays inactive until a new log comes in — normal if the script is truly done |
+| Server's `/api/tasks` keeps showing `disconnected` | No log within `BEACON_RUNNING_WINDOW_S` (1800s) | Enable `BeaconClient(heartbeat=10)` for automatic heartbeats, or increase the window |
+| Task stays `disconnected` after a `__TASK_DONE__` sentinel | That is expected | It stays disconnected until a new log comes in — normal if the script is truly done |
+| Task shows `disconnected` (gray) | Heartbeat stopped but no DISCONNECT sent | Expected for crashed / killed scripts; normal exit sends DISCONNECT |
 | Server returns 409 on delete | Task is still active | User can confirm "delete anyway" in the UI; from CLI add `?force=true` |
-| Task stays `running` after script exits | No `mark_done()` called, waiting for time window | Call `mark_done()` at end of script, or just wait `running_window_seconds` (default 1800s / 30min) |
+| Task stays `running` after script exits | No `mark_done()` called, waiting for time window | Call `mark_done()` at end of script, or just wait `running_window_seconds` (default 30min) |
 | `[beacon.mark_done]` on stderr | Network issue or wrong URL | Verify the server URL and that the task exists |
 | Recursion / spam in stderr | Custom `logger.exception` inside a sink fallback | Beacon's sink uses `print(..., file=sys.stderr)` for this exact reason; do not replace it with `logger.exception` |
 
@@ -421,7 +432,7 @@ API endpoints used by this skill:
 - `POST /api/log` — write one log line. Required: `task`, `level`,
   `message`. Optional: `timestamp`, `host`. Returns `{"ok": true}`.
 - `POST /api/tasks/{task}/done` — mark a task as finished. Inserts a
-  `__TASK_DONE__` sentinel entry; the task flips to `inactive`.
+  `__TASK_DONE__` sentinel entry; the task flips to `disconnected`.
   Returns `{"ok": true}`.
 - `GET /health` — unauthenticated liveness probe.
 

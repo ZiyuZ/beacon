@@ -1,7 +1,9 @@
 {% for entry in entries %}
 {% set msg = entry.message %}
 {% set extra_lines = msg.count("\n") %}
-{% if entry.level in ("__TASK_CONNECT__", "__TASK_DONE__", "__TASK_DISCONNECT__") %}
+{% set is_hb = entry.level == "__TASK_HEARTBEAT__" %}
+{% if is_hb %}
+{% elif entry.level in ("__TASK_CONNECT__", "__TASK_DONE__", "__TASK_DISCONNECT__") %}
 {% set sentinel_label = "▶ STARTED" if entry.level == "__TASK_CONNECT__" else ("⬥ COMPLETED ⬥" if entry.level ==
 "__TASK_DONE__" else "⬥ DISCONNECTED ⬥") %}
 <div data-log-id="{{ entry.id }}" data-level="{{ entry.level }}" class="log-row log-sentinel">
