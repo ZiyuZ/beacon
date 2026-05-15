@@ -1,4 +1,4 @@
-"""Loguru sink that ships log records to a Beacon server over HTTP.
+"""HTTP client for shipping logs to a Beacon server.
 
 Usage::
 
@@ -15,8 +15,12 @@ Usage::
 
     # Mark a task as done
     beacon.mark_done(task="training_a")
+
+Tasks registered via ``.sink()`` are automatically marked as done when
+``BeaconClient`` is garbage-collected or the interpreter exits.
 """
 
+import atexit
 import os
 import socket
 import sys
@@ -69,7 +73,7 @@ class BeaconClient:
 
         beacon = BeaconClient()                              # auto-resolve
         beacon = BeaconClient(url="http://beacon:8000")      # explicit url
-        beacon = BeaconClient(token="secret")                 # explicit token
+        beacon = BeaconClient(token="secret")                # explicit token
     """
 
     def __init__(
@@ -83,11 +87,15 @@ class BeaconClient:
         self._base_url = _resolve_url(url).rstrip("/")
         self._default_host = host or socket.gethostname()
         self._timeout = timeout
+        self._done_tasks: set[str] = set()
+        self._finalized = False
 
         resolved_token = _resolve_token(token)
         self._headers: dict[str, str] = {}
         if resolved_token:
             self._headers["Authorization"] = f"Bearer {resolved_token}"
+
+        atexit.register(self._shutdown)
 
     def sink(
         self,
@@ -105,6 +113,8 @@ class BeaconClient:
         endpoint = f"{self._base_url}/api/log"
         source_host = host or self._default_host
         client = httpx.Client(timeout=self._timeout, headers=self._headers)
+
+        self._done_tasks.add(task)
 
         def _sink(message: "Message") -> None:
             record = message.record
@@ -135,6 +145,25 @@ class BeaconClient:
                 client.post(endpoint, headers=self._headers)
         except Exception as exc:
             print(f"[beacon.mark_done] {exc}", file=sys.stderr)
+
+    def _shutdown(self) -> None:
+        """Auto-mark all tracked tasks as done on exit.
+
+        Registered via ``atexit`` and ``__del__`` so it fires whether the
+        script exits normally or the client is garbage-collected.
+        """
+
+        if self._finalized:
+            return
+        self._finalized = True
+        for task in list(self._done_tasks):
+            try:
+                self.mark_done(task)
+            except Exception:
+                pass
+
+    # def __del__(self) -> None:
+    #     self._shutdown()
 
 
 __all__ = ["BeaconClient"]
