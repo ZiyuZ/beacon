@@ -1,720 +1,774 @@
 <!doctype html>
 <html lang="en" class="dark">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="color-scheme" content="dark" />
-    <title>{% block title %}Beacon{% endblock %}</title>
 
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <title>{% block title %}Beacon{% endblock %}</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: [
-                "Inter",
-                "ui-sans-serif",
-                "system-ui",
-                "-apple-system",
-                "Segoe UI",
-                "Roboto",
-                "PingFang SC",
-                "Hiragino Sans GB",
-                "Microsoft YaHei UI",
-                "Microsoft YaHei",
-                "Source Han Sans SC",
-                "Noto Sans CJK SC",
-                "Noto Sans SC",
-                "sans-serif",
-              ],
-              mono: [
-                "JetBrains Mono",
-                "ui-monospace",
-                "SFMono-Regular",
-                "Menlo",
-                "Consolas",
-                "Liberation Mono",
-                "PingFang SC",
-                "Microsoft YaHei UI",
-                "Microsoft YaHei",
-                "Source Han Sans SC",
-                "Noto Sans CJK SC",
-                "monospace",
-              ],
-            },
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: [
+              "Inter",
+              "ui-sans-serif",
+              "system-ui",
+              "-apple-system",
+              "Segoe UI",
+              "Roboto",
+              "PingFang SC",
+              "Hiragino Sans GB",
+              "Microsoft YaHei UI",
+              "Microsoft YaHei",
+              "Source Han Sans SC",
+              "Noto Sans CJK SC",
+              "Noto Sans SC",
+              "sans-serif",
+            ],
+            mono: [
+              "JetBrains Mono",
+              "ui-monospace",
+              "SFMono-Regular",
+              "Menlo",
+              "Consolas",
+              "Liberation Mono",
+              "PingFang SC",
+              "Microsoft YaHei UI",
+              "Microsoft YaHei",
+              "Source Han Sans SC",
+              "Noto Sans CJK SC",
+              "monospace",
+            ],
           },
         },
-      };
-    </script>
-    <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
-    <style>
-      html,
-      body {
-        background-color: #0b0f17;
-        color: #e6edf3;
-      }
-      body {
-        font-family: "Inter", ui-sans-serif, system-ui, -apple-system,
-          "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB",
-          "Microsoft YaHei UI", "Microsoft YaHei", "Source Han Sans SC",
-          "Noto Sans CJK SC", "Noto Sans SC", sans-serif;
-        font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        text-rendering: optimizeLegibility;
-      }
-      /* Make CJK glyphs explicitly use the CJK fallbacks even when surrounded
+      },
+    };
+  </script>
+  <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
+  <style>
+    html,
+    body {
+      background-color: #0b0f17;
+      color: #e6edf3;
+    }
+
+    body {
+      font-family: "Inter", ui-sans-serif, system-ui, -apple-system,
+        "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB",
+        "Microsoft YaHei UI", "Microsoft YaHei", "Source Han Sans SC",
+        "Noto Sans CJK SC", "Noto Sans SC", sans-serif;
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+
+    /* Make CJK glyphs explicitly use the CJK fallbacks even when surrounded
          by Latin text. Browsers honor U+4E00–U+9FFF, U+3000–U+30FF, etc. */
-      :lang(zh),
-      :lang(ja),
-      :lang(ko) {
-        font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI",
-          "Microsoft YaHei", "Source Han Sans SC", "Noto Sans CJK SC",
-          "Noto Sans SC", "Inter", sans-serif;
-      }
-      h1,
-      h2,
-      h3 {
-        letter-spacing: -0.01em;
-      }
-      .font-mono,
-      pre,
-      code {
-        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
-          Consolas, "Liberation Mono", "PingFang SC", "Microsoft YaHei UI",
-          "Microsoft YaHei", "Source Han Sans SC", "Noto Sans CJK SC",
-          monospace;
-        font-feature-settings: "calt" 0, "liga" 0;
-        font-variant-ligatures: none;
-      }
-      .tabular-nums,
-      time {
-        font-variant-numeric: tabular-nums;
-      }
+    :lang(zh),
+    :lang(ja),
+    :lang(ko) {
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI",
+        "Microsoft YaHei", "Source Han Sans SC", "Noto Sans CJK SC",
+        "Noto Sans SC", "Inter", sans-serif;
+    }
 
-      /* Scrollbars */
-      * {
-        scrollbar-width: thin;
-        scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
-      }
-      *::-webkit-scrollbar {
-        width: 10px;
-        height: 10px;
-      }
-      *::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      *::-webkit-scrollbar-thumb {
-        background-color: rgba(148, 163, 184, 0.28);
-        border-radius: 999px;
-        border: 2px solid transparent;
-        background-clip: padding-box;
-        transition: background-color 0.15s ease-in-out;
-      }
-      *::-webkit-scrollbar-thumb:hover {
-        background-color: rgba(148, 163, 184, 0.55);
-        background-clip: padding-box;
-      }
-      *::-webkit-scrollbar-corner {
-        background: transparent;
-      }
-      #log-container::-webkit-scrollbar {
-        width: 12px;
-      }
+    h1,
+    h2,
+    h3 {
+      letter-spacing: -0.01em;
+    }
 
-      /* Level colors (used both on the [LEVEL] tag and on chip buttons). */
-      .level-DEBUG { color: #94a3b8; }
-      .level-INFO { color: #93c5fd; }
-      .level-SUCCESS { color: #86efac; }
-      .level-WARNING, .level-WARN { color: #fcd34d; }
-      .level-ERROR { color: #fca5a5; }
-      .level-CRITICAL { color: #f87171; font-weight: 600; }
+    .font-mono,
+    pre,
+    code {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
+        Consolas, "Liberation Mono", "PingFang SC", "Microsoft YaHei UI",
+        "Microsoft YaHei", "Source Han Sans SC", "Noto Sans CJK SC",
+        monospace;
+      font-feature-settings: "calt" 0, "liga" 0;
+      font-variant-ligatures: none;
+    }
 
-      .status-running {
-        background-color: rgba(34, 197, 94, 0.15);
-        color: #86efac;
-      }
-      .status-inactive {
-        background-color: rgba(148, 163, 184, 0.15);
-        color: #cbd5e1;
-      }
-      .status-error {
-        background-color: rgba(248, 113, 113, 0.15);
-        color: #fca5a5;
-      }
-      .status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        border-radius: 999px;
-        padding: 0.1rem 0.5rem;
-        font-size: 10px;
-        font-weight: 600;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-      }
-      .status-dot {
-        width: 0.46rem;
-        height: 0.46rem;
-        border-radius: 999px;
-        display: inline-block;
-        flex-shrink: 0;
-      }
-      .status-dot-running {
-        background: #86efac;
-        box-shadow: 0 0 0 3px rgba(134, 239, 172, 0.15);
-      }
-      .status-dot-inactive {
-        background: #cbd5e1;
-        box-shadow: 0 0 0 3px rgba(203, 213, 225, 0.12);
-      }
-      .status-dot-error {
-        background: #fca5a5;
-        box-shadow: 0 0 0 3px rgba(252, 165, 165, 0.14);
-      }
+    .tabular-nums,
+    time {
+      font-variant-numeric: tabular-nums;
+    }
 
-      /* Live indicator dot (header) */
-      #live-dot {
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        border-radius: 999px;
-        background: #86efac;
+    /* Scrollbars */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+    }
+
+    *::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    *::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    *::-webkit-scrollbar-thumb {
+      background-color: rgba(148, 163, 184, 0.28);
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+      transition: background-color 0.15s ease-in-out;
+    }
+
+    *::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(148, 163, 184, 0.55);
+      background-clip: padding-box;
+    }
+
+    *::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+
+    #log-container::-webkit-scrollbar {
+      width: 12px;
+    }
+
+    /* Level colors (used both on the [LEVEL] tag and on chip buttons). */
+    .level-DEBUG {
+      color: #94a3b8;
+    }
+
+    .level-INFO {
+      color: #93c5fd;
+    }
+
+    .level-SUCCESS {
+      color: #86efac;
+    }
+
+    .level-WARNING,
+    .level-WARN {
+      color: #fcd34d;
+    }
+
+    .level-ERROR {
+      color: #fca5a5;
+    }
+
+    .level-CRITICAL {
+      color: #f87171;
+      font-weight: 600;
+    }
+
+    .level-__TASK_DONE__ {
+      color: #64748b;
+      font-style: italic;
+    }
+
+    .status-running {
+      background-color: rgba(34, 197, 94, 0.15);
+      color: #86efac;
+    }
+
+    .status-inactive {
+      background-color: rgba(148, 163, 184, 0.15);
+      color: #cbd5e1;
+    }
+
+    .status-error {
+      background-color: rgba(248, 113, 113, 0.15);
+      color: #fca5a5;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      border-radius: 999px;
+      padding: 0.1rem 0.5rem;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .status-dot {
+      width: 0.46rem;
+      height: 0.46rem;
+      border-radius: 999px;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .status-dot-running {
+      background: #86efac;
+      box-shadow: 0 0 0 3px rgba(134, 239, 172, 0.15);
+    }
+
+    .status-dot-inactive {
+      background: #cbd5e1;
+      box-shadow: 0 0 0 3px rgba(203, 213, 225, 0.12);
+    }
+
+    .status-dot-error {
+      background: #fca5a5;
+      box-shadow: 0 0 0 3px rgba(252, 165, 165, 0.14);
+    }
+
+    /* Live indicator dot (header) */
+    #live-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #86efac;
+      box-shadow: 0 0 0 0 rgba(134, 239, 172, 0.55);
+      animation: live-pulse 2.4s ease-out infinite;
+    }
+
+    #live-dot.live-pinging {
+      background: #fef08a;
+      animation: none;
+    }
+
+    #live-dot.live-error {
+      background: #fca5a5;
+      animation: none;
+      box-shadow: 0 0 0 4px rgba(252, 165, 165, 0.15);
+    }
+
+    @keyframes live-pulse {
+      0% {
         box-shadow: 0 0 0 0 rgba(134, 239, 172, 0.55);
-        animation: live-pulse 2.4s ease-out infinite;
-      }
-      #live-dot.live-pinging {
-        background: #fef08a;
-        animation: none;
-      }
-      #live-dot.live-error {
-        background: #fca5a5;
-        animation: none;
-        box-shadow: 0 0 0 4px rgba(252, 165, 165, 0.15);
-      }
-      @keyframes live-pulse {
-        0% {
-          box-shadow: 0 0 0 0 rgba(134, 239, 172, 0.55);
-        }
-        70% {
-          box-shadow: 0 0 0 8px rgba(134, 239, 172, 0);
-        }
-        100% {
-          box-shadow: 0 0 0 0 rgba(134, 239, 172, 0);
-        }
       }
 
-      /* Filter chips */
-      .chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.25rem;
-        padding: 0.125rem 0.5rem;
-        border: 1px solid rgba(148, 163, 184, 0.3);
-        border-radius: 999px;
-        font-family: "JetBrains Mono", ui-monospace, monospace;
-        font-size: 10px;
-        font-weight: 600;
-        letter-spacing: 0.05em;
-        cursor: pointer;
-        user-select: none;
-        transition: opacity 0.12s ease, background-color 0.12s ease,
-          border-color 0.12s ease;
-      }
-      .chip:hover {
-        background-color: rgba(148, 163, 184, 0.08);
-      }
-      .chip-off {
-        opacity: 0.35;
-        border-style: dashed;
-      }
-      .chip-off:hover {
-        opacity: 0.55;
+      70% {
+        box-shadow: 0 0 0 8px rgba(134, 239, 172, 0);
       }
 
-      /* Level row hide rules driven by chip toggles */
-      .hide-DEBUG [data-level="DEBUG"],
-      .hide-INFO [data-level="INFO"],
-      .hide-SUCCESS [data-level="SUCCESS"],
-      .hide-WARNING [data-level="WARNING"],
-      .hide-ERROR [data-level="ERROR"],
-      .hide-CRITICAL [data-level="CRITICAL"] {
-        display: none;
+      100% {
+        box-shadow: 0 0 0 0 rgba(134, 239, 172, 0);
       }
-      .search-hidden {
-        display: none !important;
-      }
+    }
 
-      /* Multi-line traceback folding via <details>. */
-      .log-row details {
-        display: inline;
-      }
-      .log-row details > summary {
-        display: inline;
-        list-style: none;
-        cursor: pointer;
-      }
-      .log-row details > summary::-webkit-details-marker {
-        display: none;
-      }
-      .log-row details > .log-rest {
-        display: none;
-      }
-      .log-row details[open] > .log-rest {
-        display: block;
-      }
-      .log-row details[open] > summary .log-more {
-        display: none;
-      }
-      .log-more {
-        display: inline-block;
-        margin-left: 0.4rem;
-        padding: 0 0.4rem;
-        border-radius: 4px;
-        background-color: rgba(148, 163, 184, 0.18);
-        color: #cbd5e1;
-        font-size: 10px;
-        font-weight: 500;
-        letter-spacing: 0.02em;
-      }
+    /* Filter chips */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.125rem 0.5rem;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 999px;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      user-select: none;
+      transition: opacity 0.12s ease, background-color 0.12s ease,
+        border-color 0.12s ease;
+    }
 
-      /* "N new logs" floating chip */
-      #new-logs-badge {
-        position: absolute;
-        bottom: 1rem;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: rgba(56, 189, 248, 0.16);
-        color: #bae6fd;
-        border: 1px solid rgba(56, 189, 248, 0.4);
-        backdrop-filter: blur(6px);
-        padding: 0.3rem 0.85rem;
-        border-radius: 999px;
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-        cursor: pointer;
-        transition: opacity 0.15s, transform 0.15s;
-      }
-      #new-logs-badge:hover {
-        background-color: rgba(56, 189, 248, 0.25);
-      }
+    .chip:hover {
+      background-color: rgba(148, 163, 184, 0.08);
+    }
 
-      /* Dense log pane — tighter line boxes so more rows fit on screen */
-      #log-container {
-        line-height: 1.32;
-      }
-      #log-container .log-row {
-        line-height: 1.32;
-        padding: 0.0625rem 0;
-      }
-      #log-container .log-row details {
-        margin: 0;
-      }
-      #log-container .log-rest {
-        margin-top: 0.25rem;
-      }
-      .brand-mark {
-        height: 1.75rem;
-        width: 1.75rem;
-        flex-shrink: 0;
-        border-radius: 0.25rem;
-        object-fit: contain;
-      }
+    .chip-off {
+      opacity: 0.35;
+      border-style: dashed;
+    }
 
-      /* Login modal backdrop + panel */
-      #login-overlay {
-        position: fixed;
-        inset: 0;
-        z-index: 999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0, 0, 0, 0.65);
-        backdrop-filter: blur(4px);
-      }
-      #login-overlay.hidden {
-        display: none !important;
-      }
-      #login-panel {
-        width: 340px;
-        max-width: 90vw;
-        padding: 1.75rem 1.5rem;
-        border: 1px solid rgba(148, 163, 184, 0.25);
-        border-radius: 1rem;
-        background: #141b2b;
-        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
-      }
-      #login-panel h2 {
-        margin: 0 0 0.3rem 0;
-        font-size: 1rem;
-        font-weight: 600;
-        color: #e6edf3;
-      }
-      #login-panel p {
-        margin: 0 0 1rem 0;
-        font-size: 12px;
-        color: #94a3b8;
-      }
-      #login-panel input[type="password"] {
-        display: block;
-        width: 100%;
-        padding: 0.5rem 0.75rem;
-        border: 1px solid rgba(148, 163, 184, 0.3);
-        border-radius: 0.5rem;
-        background: rgba(0, 0, 0, 0.35);
-        color: #e6edf3;
-        font-size: 14px;
-        outline: none;
-        box-sizing: border-box;
-        transition: border-color 0.15s;
-      }
-      #login-panel input[type="password"]:focus {
-        border-color: #3b82f6;
-      }
-      #login-panel .login-error {
-        margin-top: 0.5rem;
-        font-size: 11px;
-        color: #f87171;
-        min-height: 1.2em;
-      }
-      #login-panel .login-actions {
-        margin-top: 0.75rem;
-        display: flex;
-        gap: 0.5rem;
-        justify-content: flex-end;
-      }
-      #login-panel .login-actions button {
-        padding: 0.4rem 1rem;
-        border-radius: 0.5rem;
-        font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        border: none;
-        transition: opacity 0.12s;
-      }
-      #login-panel .login-actions .btn-cancel {
-        background: transparent;
-        color: #94a3b8;
-      }
-      #login-panel .login-actions .btn-cancel:hover {
-        color: #e6edf3;
-      }
-      #login-panel .login-actions .btn-login {
-        background: #3b82f6;
-        color: #fff;
-      }
-      #login-panel .login-actions .btn-login:hover {
-        opacity: 0.85;
-      }
-      #login-panel .login-actions .btn-login:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-      }
-    </style>
-  </head>
-  <body
-    class="{% block body_class %}flex min-h-dvh flex-col antialiased{% endblock %}"
-  >
-    <header
-      class="sticky top-0 z-10 shrink-0 border-b border-slate-800 bg-slate-900/80 backdrop-blur"
-    >
-      <div
-        class="mx-auto flex w-full {% block header_max %}max-w-screen-2xl{% endblock %} items-center justify-between gap-3 px-4 py-3"
-      >
-        {% block brand %}
-          <a
-            href="/"
-            class="flex min-w-0 shrink items-center gap-2 rounded-md text-base font-semibold tracking-tight text-slate-100 outline-none ring-sky-500/40 transition hover:text-white focus-visible:ring-2"
-          >
-            <img
-              src="/favicon.svg"
-              alt=""
-              width="28"
-              height="28"
-              class="brand-mark"
-              decoding="async"
-              fetchpriority="high"
-            />
-            <span class="truncate">Beacon</span>
-          </a>
-        {% endblock %}
-        <div class="flex items-center gap-3">
-          <span
-            id="live-dot"
-            title="Live"
-            aria-label="connection status"
-          ></span>
-          {% block header_right %}{% endblock %}
-        </div>
+    .chip-off:hover {
+      opacity: 0.55;
+    }
+
+    /* Level row hide rules driven by chip toggles */
+    .hide-DEBUG [data-level="DEBUG"],
+    .hide-INFO [data-level="INFO"],
+    .hide-SUCCESS [data-level="SUCCESS"],
+    .hide-WARNING [data-level="WARNING"],
+    .hide-ERROR [data-level="ERROR"],
+    .hide-CRITICAL [data-level="CRITICAL"] {
+      display: none;
+    }
+
+    .search-hidden {
+      display: none !important;
+    }
+
+    /* Multi-line traceback folding via <details>. */
+    .log-row details {
+      display: inline;
+    }
+
+    .log-row details>summary {
+      display: inline;
+      list-style: none;
+      cursor: pointer;
+    }
+
+    .log-row details>summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .log-row details>.log-rest {
+      display: none;
+    }
+
+    .log-row details[open]>.log-rest {
+      display: block;
+    }
+
+    .log-row details[open]>summary .log-more {
+      display: none;
+    }
+
+    .log-more {
+      display: inline-block;
+      margin-left: 0.4rem;
+      padding: 0 0.4rem;
+      border-radius: 4px;
+      background-color: rgba(148, 163, 184, 0.18);
+      color: #cbd5e1;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    /* "N new logs" floating chip */
+    #new-logs-badge {
+      position: absolute;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(56, 189, 248, 0.16);
+      color: #bae6fd;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      backdrop-filter: blur(6px);
+      padding: 0.3rem 0.85rem;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+
+    #new-logs-badge:hover {
+      background-color: rgba(56, 189, 248, 0.25);
+    }
+
+    /* Dense log pane — tighter line boxes so more rows fit on screen */
+    #log-container {
+      line-height: 1.32;
+    }
+
+    #log-container .log-row {
+      line-height: 1.32;
+      padding: 0.0625rem 0;
+    }
+
+    #log-container .log-row details {
+      margin: 0;
+    }
+
+    #log-container .log-rest {
+      margin-top: 0.25rem;
+    }
+
+    .brand-mark {
+      height: 1.75rem;
+      width: 1.75rem;
+      flex-shrink: 0;
+      border-radius: 0.25rem;
+      object-fit: contain;
+    }
+
+    /* Login modal backdrop + panel */
+    #login-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+    }
+
+    #login-overlay.hidden {
+      display: none !important;
+    }
+
+    #login-panel {
+      width: 340px;
+      max-width: 90vw;
+      padding: 1.75rem 1.5rem;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 1rem;
+      background: #141b2b;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+    }
+
+    #login-panel h2 {
+      margin: 0 0 0.3rem 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #e6edf3;
+    }
+
+    #login-panel p {
+      margin: 0 0 1rem 0;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    #login-panel input[type="password"] {
+      display: block;
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 0.5rem;
+      background: rgba(0, 0, 0, 0.35);
+      color: #e6edf3;
+      font-size: 14px;
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.15s;
+    }
+
+    #login-panel input[type="password"]:focus {
+      border-color: #3b82f6;
+    }
+
+    #login-panel .login-error {
+      margin-top: 0.5rem;
+      font-size: 11px;
+      color: #f87171;
+      min-height: 1.2em;
+    }
+
+    #login-panel .login-actions {
+      margin-top: 0.75rem;
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+    }
+
+    #login-panel .login-actions button {
+      padding: 0.4rem 1rem;
+      border-radius: 0.5rem;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.12s;
+    }
+
+    #login-panel .login-actions .btn-cancel {
+      background: transparent;
+      color: #94a3b8;
+    }
+
+    #login-panel .login-actions .btn-cancel:hover {
+      color: #e6edf3;
+    }
+
+    #login-panel .login-actions .btn-login {
+      background: #3b82f6;
+      color: #fff;
+    }
+
+    #login-panel .login-actions .btn-login:hover {
+      opacity: 0.85;
+    }
+
+    #login-panel .login-actions .btn-login:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+
+<body class="{% block body_class %}flex min-h-dvh flex-col antialiased{% endblock %}">
+  <header class="sticky top-0 z-10 shrink-0 border-b border-slate-800 bg-slate-900/80 backdrop-blur">
+    <div
+      class="mx-auto flex w-full {% block header_max %}max-w-screen-2xl{% endblock %} items-center justify-between gap-3 px-4 py-3">
+      {% block brand %}
+      <a href="/"
+        class="flex min-w-0 shrink items-center gap-2 rounded-md text-base font-semibold tracking-tight text-slate-100 outline-none ring-sky-500/40 transition hover:text-white focus-visible:ring-2">
+        <img src="/favicon.svg" alt="" width="28" height="28" class="brand-mark" decoding="async"
+          fetchpriority="high" />
+        <span class="truncate">Beacon</span>
+      </a>
+      {% endblock %}
+      <div class="flex items-center gap-3">
+        <span id="live-dot" title="Live" aria-label="connection status"></span>
+        {% block header_right %}{% endblock %}
       </div>
-    </header>
-    <main
-      class="mx-auto flex w-full {% block main_max %}max-w-3xl{% endblock %} flex-1 flex-col {% block main_gap %}gap-3{% endblock %} px-4 py-4 min-h-0"
-    >
-      {% block content %}{% endblock %}
-    </main>
+    </div>
+  </header>
+  <main
+    class="mx-auto flex w-full {% block main_max %}max-w-3xl{% endblock %} flex-1 flex-col {% block main_gap %}gap-3{% endblock %} px-4 py-4 min-h-0">
+    {% block content %}{% endblock %}
+  </main>
 
-    <script>
-      (function () {
-        function formatRelative(iso) {
-          if (!iso) return "";
-          const d = new Date(iso);
-          if (isNaN(d.getTime())) return "";
-          const diff = (Date.now() - d.getTime()) / 1000;
-          if (diff < 0) return d.toLocaleTimeString();
-          if (diff < 5) return "just now";
-          if (diff < 60) return Math.floor(diff) + "s ago";
-          if (diff < 3600) return Math.floor(diff / 60) + "m ago";
-          if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
-          if (diff < 7 * 86400) return Math.floor(diff / 86400) + "d ago";
-          return d.toLocaleDateString();
-        }
+  <script>
+    (function () {
+      function formatRelative(iso) {
+        if (!iso) return "";
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return "";
+        const diff = (Date.now() - d.getTime()) / 1000;
+        if (diff < 0) return d.toLocaleTimeString();
+        if (diff < 5) return "just now";
+        if (diff < 60) return Math.floor(diff) + "s ago";
+        if (diff < 3600) return Math.floor(diff / 60) + "m ago";
+        if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
+        if (diff < 7 * 86400) return Math.floor(diff / 86400) + "d ago";
+        return d.toLocaleDateString();
+      }
 
-        function refreshTimes(root) {
-          (root || document)
-            .querySelectorAll("time[data-relative]")
-            .forEach(function (el) {
-              const iso = el.getAttribute("datetime");
-              if (!iso) return;
-              el.textContent = formatRelative(iso);
-              el.title = new Date(iso).toLocaleString();
-            });
-        }
-        window.beaconRefreshTimes = refreshTimes;
-
-        document.addEventListener("DOMContentLoaded", function () {
-          refreshTimes();
-          setInterval(refreshTimes, 5000);
-        });
-        document.addEventListener("htmx:afterSwap", function (evt) {
-          refreshTimes(evt.target);
-        });
-
-        const liveDot = document.getElementById("live-dot");
-        if (liveDot) {
-          let pingTimer = null;
-          document.addEventListener("htmx:beforeRequest", function () {
-            liveDot.classList.add("live-pinging");
-            clearTimeout(pingTimer);
-            pingTimer = setTimeout(function () {
-              liveDot.classList.remove("live-pinging");
-            }, 250);
+      function refreshTimes(root) {
+        (root || document)
+          .querySelectorAll("time[data-relative]")
+          .forEach(function (el) {
+            const iso = el.getAttribute("datetime");
+            if (!iso) return;
+            el.textContent = formatRelative(iso);
+            el.title = new Date(iso).toLocaleString();
           });
-          document.addEventListener("htmx:afterOnLoad", function () {
-            liveDot.classList.remove("live-error");
-            liveDot.title =
-              "Live · last update " + new Date().toLocaleTimeString();
-          });
-          document.addEventListener("htmx:responseError", function () {
-            liveDot.classList.add("live-error");
+      }
+      window.beaconRefreshTimes = refreshTimes;
+
+      document.addEventListener("DOMContentLoaded", function () {
+        refreshTimes();
+        setInterval(refreshTimes, 5000);
+      });
+      document.addEventListener("htmx:afterSwap", function (evt) {
+        refreshTimes(evt.target);
+      });
+
+      const liveDot = document.getElementById("live-dot");
+      if (liveDot) {
+        let pingTimer = null;
+        document.addEventListener("htmx:beforeRequest", function () {
+          liveDot.classList.add("live-pinging");
+          clearTimeout(pingTimer);
+          pingTimer = setTimeout(function () {
             liveDot.classList.remove("live-pinging");
-            liveDot.title = "Connection error";
-          });
-          document.addEventListener("htmx:sendError", function () {
-            liveDot.classList.add("live-error");
-            liveDot.classList.remove("live-pinging");
-            liveDot.title = "Network error";
-          });
-        }
-      })();
-    </script>
-    <script>
-      window.beaconAuthFetch = async function (url, options) {
-        var opts = options || {};
-        var headers = Object.assign({}, opts.headers || {});
-        var token = localStorage.getItem("beaconJwt");
-        if (token) headers["Authorization"] = "Bearer " + token;
-        opts.headers = headers;
-
-        var res = await fetch(url, opts);
-        if (res.status !== 401) return res;
-
-        var loggedIn = await beaconLogin();
-        if (!loggedIn) return res;
-
-        var newToken = localStorage.getItem("beaconJwt");
-        opts.headers["Authorization"] = "Bearer " + newToken;
-        return fetch(url, opts);
-      };
-
-      window.beaconLogin = async function () {
-        var overlay = document.getElementById("login-overlay");
-        var input = document.getElementById("login-password");
-        var errEl = document.getElementById("login-error");
-        var btn = document.getElementById("login-submit");
-
-        overlay.classList.remove("hidden");
-        input.value = "";
-        errEl.textContent = "";
-        input.disabled = false;
-        btn.disabled = false;
-        input.focus();
-
-        return new Promise(function (resolve) {
-          window._loginResolve = resolve;
+          }, 250);
         });
-      };
+        document.addEventListener("htmx:afterOnLoad", function () {
+          liveDot.classList.remove("live-error");
+          liveDot.title =
+            "Live · last update " + new Date().toLocaleTimeString();
+        });
+        document.addEventListener("htmx:responseError", function () {
+          liveDot.classList.add("live-error");
+          liveDot.classList.remove("live-pinging");
+          liveDot.title = "Connection error";
+        });
+        document.addEventListener("htmx:sendError", function () {
+          liveDot.classList.add("live-error");
+          liveDot.classList.remove("live-pinging");
+          liveDot.title = "Network error";
+        });
+      }
+    })();
+  </script>
+  <script>
+    window.beaconAuthFetch = async function (url, options) {
+      var opts = options || {};
+      var headers = Object.assign({}, opts.headers || {});
+      var token = localStorage.getItem("beaconJwt");
+      if (token) headers["Authorization"] = "Bearer " + token;
+      opts.headers = headers;
 
-      window._loginSubmit = async function () {
-        var input = document.getElementById("login-password");
-        var errEl = document.getElementById("login-error");
-        var btn = document.getElementById("login-submit");
-        var password = input.value.trim();
-        if (!password) return;
+      var res = await fetch(url, opts);
+      if (res.status !== 401) return res;
 
-        input.disabled = true;
-        btn.disabled = true;
-        errEl.textContent = "";
+      var loggedIn = await beaconLogin();
+      if (!loggedIn) return res;
 
-        try {
-          var res = await fetch("/api/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ password: password }),
-          });
-          if (!res.ok) {
-            var data = await res.json().catch(function () { return {}; });
-            errEl.textContent = data.detail || "Login failed";
-            input.disabled = false;
-            btn.disabled = false;
-            input.focus();
-            return;
-          }
-          var data = await res.json();
-          localStorage.setItem("beaconJwt", data.access_token);
-          document.getElementById("login-overlay").classList.add("hidden");
-          if (window._loginResolve) {
-            window._loginResolve(true);
-            window._loginResolve = null;
-          }
-        } catch (e) {
-          errEl.textContent = "Network error, try again";
+      var newToken = localStorage.getItem("beaconJwt");
+      opts.headers["Authorization"] = "Bearer " + newToken;
+      return fetch(url, opts);
+    };
+
+    window.beaconLogin = async function () {
+      var overlay = document.getElementById("login-overlay");
+      var input = document.getElementById("login-password");
+      var errEl = document.getElementById("login-error");
+      var btn = document.getElementById("login-submit");
+
+      overlay.classList.remove("hidden");
+      input.value = "";
+      errEl.textContent = "";
+      input.disabled = false;
+      btn.disabled = false;
+      input.focus();
+
+      return new Promise(function (resolve) {
+        window._loginResolve = resolve;
+      });
+    };
+
+    window._loginSubmit = async function () {
+      var input = document.getElementById("login-password");
+      var errEl = document.getElementById("login-error");
+      var btn = document.getElementById("login-submit");
+      var password = input.value.trim();
+      if (!password) return;
+
+      input.disabled = true;
+      btn.disabled = true;
+      errEl.textContent = "";
+
+      try {
+        var res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: password }),
+        });
+        if (!res.ok) {
+          var data = await res.json().catch(function () { return {}; });
+          errEl.textContent = data.detail || "Login failed";
           input.disabled = false;
           btn.disabled = false;
-        }
-      };
-
-      window._loginCancel = function () {
-        document.getElementById("login-overlay").classList.add("hidden");
-        if (window._loginResolve) {
-          window._loginResolve(false);
-          window._loginResolve = null;
-        }
-      };
-    </script>
-    <script>
-      window.beaconDeleteTask = async function (target) {
-        var task =
-          typeof target === "string"
-            ? target
-            : target && target.getAttribute("data-task");
-        if (!task) return;
-        if (
-          !confirm(
-            'Delete all logs for "' +
-              task +
-              '"? This removes every stored line for that task.'
-          )
-        ) {
-          return;
-        }
-
-        async function del(force) {
-          var url =
-            "/api/tasks/" +
-            encodeURIComponent(task) +
-            (force ? "?force=true" : "");
-          return window.beaconAuthFetch(url, { method: "DELETE" });
-        }
-
-        var res = await del(false);
-        if (res.status === 409) {
-          if (
-            !confirm(
-              "This task is still active (logs in the last window). Delete anyway?"
-            )
-          ) {
-            return;
-          }
-          res = await del(true);
-        }
-        if (!res.ok) {
-          var msg = await res.text();
-          alert("Delete failed (" + res.status + "): " + msg.slice(0, 200));
-          return;
-        }
-        var list = document.getElementById("task-list");
-        if (list && typeof htmx !== "undefined") {
-          htmx.ajax("GET", "/partials/tasks", {
-            target: "#task-list",
-            swap: "innerHTML",
-          });
-        } else {
-          window.location.href = "/";
-        }
-      };
-    </script>
-    <script>
-      window.beaconDeleteInactiveTasks = async function () {
-        if (
-          !confirm(
-            "Delete all logs for inactive tasks? Running and error tasks are kept."
-          )
-        ) {
-          return;
-        }
-        var res = await window.beaconAuthFetch("/api/tasks", { method: "DELETE" });
-        if (!res.ok) {
-          var msg = await res.text();
-          alert("Delete failed (" + res.status + "): " + msg.slice(0, 200));
+          input.focus();
           return;
         }
         var data = await res.json();
-        var tasks = data.deleted_tasks || 0;
-        var rows = data.deleted_rows || 0;
-        alert("Deleted " + tasks + " inactive task(s), " + rows + " log line(s).");
-        var list = document.getElementById("task-list");
-        if (list && typeof htmx !== "undefined") {
-          htmx.ajax("GET", "/partials/tasks", {
-            target: "#task-list",
-            swap: "innerHTML",
-          });
-        } else {
-          window.location.href = "/";
+        localStorage.setItem("beaconJwt", data.access_token);
+        document.getElementById("login-overlay").classList.add("hidden");
+        if (window._loginResolve) {
+          window._loginResolve(true);
+          window._loginResolve = null;
         }
-      };
-    </script>
+      } catch (e) {
+        errEl.textContent = "Network error, try again";
+        input.disabled = false;
+        btn.disabled = false;
+      }
+    };
 
-    <!-- Login modal -->
-    <div id="login-overlay" class="hidden">
-      <div id="login-panel">
-        <h2>Beacon Login</h2>
-        <p>Enter the admin password to manage logs.</p>
-        <input
-          id="login-password"
-          type="password"
-          placeholder="Password"
-          autocomplete="current-password"
-          onkeydown="if (event.key==='Enter') _loginSubmit();"
-        />
-        <div class="login-error" id="login-error"></div>
-        <div class="login-actions">
-          <button class="btn-cancel" onclick="_loginCancel();">Cancel</button>
-          <button class="btn-login" id="login-submit" onclick="_loginSubmit();">Login</button>
-        </div>
+    window._loginCancel = function () {
+      document.getElementById("login-overlay").classList.add("hidden");
+      if (window._loginResolve) {
+        window._loginResolve(false);
+        window._loginResolve = null;
+      }
+    };
+  </script>
+  <script>
+    window.beaconDeleteTask = async function (target) {
+      var task =
+        typeof target === "string"
+          ? target
+          : target && target.getAttribute("data-task");
+      if (!task) return;
+      if (
+        !confirm(
+          'Delete all logs for "' +
+          task +
+          '"? This removes every stored line for that task.'
+        )
+      ) {
+        return;
+      }
+
+      async function del(force) {
+        var url =
+          "/api/tasks/" +
+          encodeURIComponent(task) +
+          (force ? "?force=true" : "");
+        return window.beaconAuthFetch(url, { method: "DELETE" });
+      }
+
+      var res = await del(false);
+      if (res.status === 409) {
+        if (
+          !confirm(
+            "This task is still active (logs in the last window). Delete anyway?"
+          )
+        ) {
+          return;
+        }
+        res = await del(true);
+      }
+      if (!res.ok) {
+        var msg = await res.text();
+        alert("Delete failed (" + res.status + "): " + msg.slice(0, 200));
+        return;
+      }
+      var list = document.getElementById("task-list");
+      if (list && typeof htmx !== "undefined") {
+        htmx.ajax("GET", "/partials/tasks", {
+          target: "#task-list",
+          swap: "innerHTML",
+        });
+      } else {
+        window.location.href = "/";
+      }
+    };
+  </script>
+  <script>
+    window.beaconDeleteInactiveTasks = async function () {
+      if (
+        !confirm(
+          "Delete all logs for inactive tasks? Running and error tasks are kept."
+        )
+      ) {
+        return;
+      }
+      var res = await window.beaconAuthFetch("/api/tasks", { method: "DELETE" });
+      if (!res.ok) {
+        var msg = await res.text();
+        alert("Delete failed (" + res.status + "): " + msg.slice(0, 200));
+        return;
+      }
+      var data = await res.json();
+      var tasks = data.deleted_tasks || 0;
+      var rows = data.deleted_rows || 0;
+      alert("Deleted " + tasks + " inactive task(s), " + rows + " log line(s).");
+      var list = document.getElementById("task-list");
+      if (list && typeof htmx !== "undefined") {
+        htmx.ajax("GET", "/partials/tasks", {
+          target: "#task-list",
+          swap: "innerHTML",
+        });
+      } else {
+        window.location.href = "/";
+      }
+    };
+  </script>
+
+  <!-- Login modal -->
+  <div id="login-overlay" class="hidden">
+    <div id="login-panel">
+      <h2>Beacon Login</h2>
+      <p>Enter the admin password to manage logs.</p>
+      <input id="login-password" type="password" placeholder="Password" autocomplete="current-password"
+        onkeydown="if (event.key==='Enter') _loginSubmit();" />
+      <div class="login-error" id="login-error"></div>
+      <div class="login-actions">
+        <button class="btn-cancel" onclick="_loginCancel();">Cancel</button>
+        <button class="btn-login" id="login-submit" onclick="_loginSubmit();">Login</button>
       </div>
     </div>
-  </body>
+  </div>
+</body>
+
 </html>

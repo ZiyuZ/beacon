@@ -47,7 +47,7 @@
   {# Toolbar: level chips + search + "updated XYs ago" #}
   <div class="flex shrink-0 flex-wrap items-center gap-2">
     <div id="level-filter" class="flex flex-wrap gap-1" role="group" aria-label="Filter by level">
-      {% for lvl in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] %}
+      {% for lvl in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "__TASK_DONE__"] %}
         <button
           type="button"
           data-level="{{ lvl }}"

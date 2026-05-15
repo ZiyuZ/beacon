@@ -10,6 +10,7 @@ from sqlmodel import Session, select, col
 from beacon.models.log_entry import LogEntry
 
 ERROR_LEVELS = frozenset({"ERROR", "CRITICAL"})
+TASK_DONE_LEVEL = "__TASK_DONE__"
 
 
 class TaskStatus(str, Enum):
@@ -44,11 +45,18 @@ def compute_status(
 ) -> TaskStatus:
     """Derive a task status from its most recent log entry.
 
-    The order matters: a stale task is always ``inactive`` even if its last
-    line was an error.
+    Priority (first match wins):
+
+    1. If the latest entry has level ``__TASK_DONE__`` the task has been
+       explicitly marked as finished → ``inactive``.
+    2. If the latest entry is older than *running_window_seconds* → ``inactive``.
+    3. If the latest level is ``ERROR`` or ``CRITICAL`` → ``error``.
+    4. Otherwise → ``running``.
     """
 
     now = now or datetime.now(timezone.utc)
+    if last_level.upper() == TASK_DONE_LEVEL:
+        return TaskStatus.inactive
     if now - _ensure_aware(last_seen) > timedelta(seconds=running_window_seconds):
         return TaskStatus.inactive
     if last_level.upper() in ERROR_LEVELS:

@@ -228,5 +228,39 @@ def demo(
         raise typer.Exit(code=1)
 
 
+@app.command()
+def done(
+    task: str = typer.Argument(
+        ...,
+        help="Task name to mark as finished.",
+    ),
+    url: str = typer.Option(
+        DEFAULT_URL,
+        "--url",
+        "-u",
+        help="Beacon server base URL.",
+    ),
+    token: Optional[str] = typer.Option(
+        None,
+        "--token",
+        envvar="BEACON_API_TOKEN",
+        show_envvar=True,
+        help="Bearer token.",
+    ),
+) -> None:
+    """Mark a task as finished on the Beacon server."""
+
+    from beacon.client import BeaconClient
+
+    resolved = _resolve_token(token)
+    beacon = BeaconClient(url=url, token=resolved)
+    beacon.mark_done(task=task)
+    typer.secho(
+        f"✓ done signal sent for task '{task}'",
+        fg=typer.colors.GREEN,
+        err=True,
+    )
+
+
 if __name__ == "__main__":  # pragma: no cover
     app()

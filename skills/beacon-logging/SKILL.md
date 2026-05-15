@@ -57,7 +57,9 @@ uv add "beacon[client] @ git+https://github.com/ZiyuZ/beacon.git"
 Then:
 
 ```python
-from beacon.client.remote_sink import remote_sink
+from beacon.client import BeaconClient
+
+beacon = BeaconClient(url=os.environ["BEACON_URL"], token=os.environ.get("BEACON_TOKEN"))
 ```
 
 **B. Vendor the sink (no extra dependency).** Drop this file into the
@@ -66,7 +68,7 @@ project at `tools/beacon_sink.py` (or any path you prefer). Only
 `uv add httpx` (it is a 1MB pure-python wheel, no native deps).
 
 ```python
-"""Loguru sink that ships records to a Beacon server."""
+"""Loguru sink + BeaconClient that ships records to a Beacon server."""
 
 import socket
 import sys
@@ -78,37 +80,94 @@ if TYPE_CHECKING:
     from loguru import Message  # only present in stubs
 
 
-def remote_sink(
+class BeaconClient:
+    """A client that maintains connection to a Beacon server.
+
+    Configure the server URL and credentials once, then use ``.sink()``
+    to get Loguru sinks and ``.mark_done()`` to signal completion.
+
+    Usage::
+
+        beacon = BeaconClient(url="http://beacon:8000", token="secret")
+        logger.add(beacon.sink(task="training_a"), enqueue=True)
+        beacon.mark_done(task="training_a")
+    """
+
+    def __init__(
+        self,
+        url: str,
+        *,
+        token: str | None = None,
+        host: str | None = None,
+        timeout: float = 3.0,
+    ) -> None:
+        self._base_url = url.rstrip("/")
+        self._token = token
+        self._default_host = host or socket.gethostname()
+        self._timeout = timeout
+        self._headers: dict[str, str] = {"Content-Type": "application/json"}
+        if token:
+            self._headers["Authorization"] = f"Bearer {token}"
+
+    def sink(
+        self,
+        task: str,
+        *,
+        host: str | None = None,
+    ) -> Callable[["Message"], None]:
+        """Build a Loguru sink that POSTs records for *task*."""
+        endpoint = f"{self._base_url}/api/log"
+        source_host = host or self._default_host
+        client = httpx.Client(timeout=self._timeout, headers=self._headers)
+
+        def _sink(message: "Message") -> None:
+            record = message.record
+            payload = {
+                "task": task,
+                "level": record["level"].name,
+                "message": record["message"],
+                "timestamp": record["time"].isoformat(),
+                "host": source_host,
+            }
+            try:
+                client.post(endpoint, json=payload)
+            except Exception as exc:
+                print(f"[beacon.sink] {exc}", file=sys.stderr)
+
+        return _sink
+
+    def mark_done(self, task: str) -> None:
+        """Tell the Beacon server that *task* has finished."""
+        endpoint = f"{self._base_url}/api/tasks/{task}/done"
+        try:
+            with httpx.Client(timeout=self._timeout) as client:
+                client.post(endpoint, headers=self._headers)
+        except Exception as exc:
+            print(f"[beacon.mark_done] {exc}", file=sys.stderr)
+```
     url: str,
     task: str,
     *,
     token: str | None = None,
-    host: str | None = None,
-    timeout: float = 3.0,
-) -> Callable[["Message"], None]:
-    endpoint = url.rstrip("/") + "/api/log"
-    source_host = host or socket.gethostname()
+    timeout: float = 5.0,
+) -> None:
+    """Tell the Beacon server that *task* has finished.
+
+    Posts to ``{url}/api/tasks/{task}/done`` which inserts a
+    ``__TASK_DONE__`` sentinel so the task is shown as ``inactive``.
+    Errors are swallowed so this never crashes the caller.
+    """
+
+    endpoint = f"{url.rstrip('/')}/api/tasks/{task}/done"
     headers = {"Content-Type": "application/json"}
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
-    client = httpx.Client(timeout=timeout, headers=headers)
-
-    def sink(message: "Message") -> None:
-        record = message.record
-        payload = {
-            "task": task,
-            "level": record["level"].name,
-            "message": record["message"],
-            "timestamp": record["time"].isoformat(),
-            "host": source_host,
-        }
-        try:
-            client.post(endpoint, json=payload)
-        except Exception as exc:  # never crash the script for logging
-            print(f"[beacon.remote_sink] {exc}", file=sys.stderr)
-
-    return sink
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            client.post(endpoint, headers=headers)
+    except Exception as exc:
+        print(f"[beacon.mark_done] {exc}", file=sys.stderr)
 ```
 
 ### Step 2: register the sink
@@ -126,14 +185,12 @@ beacon_url = os.environ.get("BEACON_URL")
 beacon_token = os.environ.get("BEACON_TOKEN")  # may be None for --no-auth
 
 if beacon_url:
-    from tools.beacon_sink import remote_sink  # or beacon.client.remote_sink
+    from tools.beacon_sink import BeaconClient  # or beacon.client.BeaconClient
+
+    beacon = BeaconClient(url=beacon_url, token=beacon_token)
 
     logger.add(
-        remote_sink(
-            url=beacon_url,
-            task="training_a",        # unique per script
-            token=beacon_token,
-        ),
+        beacon.sink(task="training_a"),  # unique per script
         enqueue=True,         # ships records on a background thread
         backtrace=False,
         diagnose=False,
@@ -161,6 +218,37 @@ logger.debug("alive epoch=%d", epoch)   # any line within ~30s is enough
 ```
 
 Beacon flips a task to `inactive` after 30s of silence by default.
+
+### Step 4: mark a task as done (optional)
+
+When a script finishes cleanly you can explicitly tell Beacon the task
+is complete so it shows as `inactive` immediately instead of waiting
+for the time window to expire. This is purely cosmetic but helpful for
+short scripts that finish before the 30s window.
+
+Via the Python client — reuse the same ``BeaconClient``:
+
+```python
+beacon.mark_done(task="training_a")
+```
+
+Via the CLI:
+
+```bash
+uv run beacon-demo done training_a
+```
+
+Via curl:
+
+```bash
+curl -X POST "$BEACON_URL/api/tasks/training_a/done" \
+  -H "Authorization: Bearer $BEACON_TOKEN"
+```
+
+Beacon inserts a `__TASK_DONE__` sentinel log entry. As soon as this
+entry becomes the latest line for the task, the status flips to
+`inactive`. If the script runs again and starts logging, a normal log
+line overrides the sentinel and the task returns to `running`.
 
 ## Integration: stdlib `logging`
 
@@ -258,8 +346,11 @@ Give each its own task name; they all share the same URL and token:
 ```python
 def setup_logging(task_name: str) -> None:
     if url := os.environ.get("BEACON_URL"):
+        from tools.beacon_sink import BeaconClient  # or beacon.client.BeaconClient
+
+        beacon = BeaconClient(url=url, token=os.environ.get("BEACON_TOKEN"))
         logger.add(
-            remote_sink(url=url, task=task_name, token=os.environ.get("BEACON_TOKEN")),
+            beacon.sink(task=task_name),
             enqueue=True, backtrace=False, diagnose=False, level="INFO",
         )
 
@@ -288,7 +379,7 @@ script.
 ### Multiple processes (multiprocessing / spawn)
 
 Loguru's `enqueue=True` sink is process-safe, but if you `spawn`
-workers, each new process must call `logger.add(remote_sink(...))`
+workers, each new process must call `logger.add(beacon.sink(...))`
 again — sinks do not survive `fork`/`spawn` automatically.
 
 ## Troubleshooting
@@ -296,11 +387,14 @@ again — sinks do not survive `fork`/`spawn` automatically.
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
 | Logs never appear | Wrong URL or unreachable | Open `<url>/healthz` in a browser, expect `{"status":"ok"}` |
-| `[beacon.remote_sink] 401` on stderr | Missing or wrong bearer token | Re-check `BEACON_TOKEN`; on the server, `cat data/beacon.token` |
+| `[beacon.sink] 401` on stderr | Missing or wrong bearer token | Re-check `BEACON_TOKEN`; on the server, `cat data/beacon.token` |
 | Logs lag a few seconds | Server polls every 1s; sink uses `enqueue=True` | Expected; latency cap is ~1.5s |
 | Last few lines missing on script exit | Background queue not flushed | `logger.complete()` in a `finally` block |
-| Server's `/api/tasks` keeps showing `inactive` | No log within `BEACON_RUNNING_WINDOW_S` (30s) | Add a periodic `logger.debug("alive")` heartbeat |
+| Server's `/api/tasks` keeps showing `inactive` | No log within `BEACON_RUNNING_WINDOW_S` (30s) | Add a periodic `logger.debug("alive")` heartbeat, or increase the window via `--running-window-s` |
+| Task is `inactive` too long after a `__TASK_DONE__` sentinel | That is expected | It stays inactive until a new log comes in — normal if the script is truly done |
 | Server returns 409 on delete | Task is still active | User can confirm "delete anyway" in the UI; from CLI add `?force=true` |
+| Task stays `running` after script exits | No `mark_done()` called, waiting for time window | Call `mark_done()` at end of script, or just wait `running_window_seconds` (default 30s) |
+| `[beacon.mark_done]` on stderr | Network issue or wrong URL | Verify the server URL and that the task exists |
 | Recursion / spam in stderr | Custom `logger.exception` inside a sink fallback | Beacon's sink uses `print(..., file=sys.stderr)` for this exact reason; do not replace it with `logger.exception` |
 
 ## Don't do this
@@ -326,8 +420,12 @@ API endpoints used by this skill:
 
 - `POST /api/log` — write one log line. Required: `task`, `level`,
   `message`. Optional: `timestamp`, `host`. Returns `{"ok": true}`.
+- `POST /api/tasks/{task}/done` — mark a task as finished. Inserts a
+  `__TASK_DONE__` sentinel entry; the task flips to `inactive`.
+  Returns `{"ok": true}`.
 - `GET /health` — unauthenticated liveness probe.
 
-Both `POST /api/log` and the read endpoints require
-`Authorization: Bearer <token>` unless the server is started with
-`--no-auth`.
+All endpoints except `/health` require
+`Authorization: Bearer <token>`. The read, delete, and done endpoints
+also accept a JWT obtained from `POST /api/auth/login` (see the
+server's startup output for the admin password).

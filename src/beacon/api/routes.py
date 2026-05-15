@@ -15,6 +15,7 @@ from beacon.api.deps import (
 from beacon.config import Settings
 from beacon.models.log_entry import LogEntry, LogEntryCreate, LogEntryRead
 from beacon.services.tasks import (
+    TASK_DONE_LEVEL,
     TaskSummary,
     delete_inactive_task_logs,
     delete_task_logs,
@@ -36,7 +37,9 @@ class LoginResponse(BaseModel):
 
 
 @auth_router.post("/login", response_model=LoginResponse)
-def login(payload: LoginRequest, settings: Settings = Depends(get_settings)) -> LoginResponse:
+def login(
+    payload: LoginRequest, settings: Settings = Depends(get_settings)
+) -> LoginResponse:
     if not settings.admin_password:
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,
@@ -161,3 +164,29 @@ def delete_inactive_tasks(
         "deleted_tasks": tasks_deleted,
         "deleted_rows": rows_deleted,
     }
+
+
+@router.post("/tasks/{task}/done", response_model=dict[str, bool])
+def mark_task_done(
+    task: str,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> dict[str, bool]:
+    """Mark *task* as finished by inserting a ``__TASK_DONE__`` sentinel entry.
+
+    Once the sentinel becomes the latest log for the task, ``compute_status``
+    will return ``inactive`` regardless of the time window.
+    """
+
+    host = request.client.host if request.client is not None else None
+
+    entry = LogEntry(
+        task_name=task,
+        level=TASK_DONE_LEVEL,
+        timestamp=datetime.now(timezone.utc),
+        message="Task marked as done",
+        source_host=host,
+    )
+    session.add(entry)
+    session.commit()
+    return {"ok": True}
