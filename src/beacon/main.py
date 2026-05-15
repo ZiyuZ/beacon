@@ -1,6 +1,7 @@
 """FastAPI application factory and HTML routes."""
 
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from importlib.resources import files
 from pathlib import Path
 
@@ -20,6 +21,22 @@ from beacon.services.tasks import list_task_summaries
 _TEMPLATES_DIR = Path(str(files("beacon").joinpath("templates")))
 _FAVICON_PATH = _TEMPLATES_DIR / "favicon.svg"
 templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
+
+
+def _local_time(dt: datetime, fmt: str = "%H:%M:%S") -> str:
+    """Convert a UTC-naive datetime to local time and format it."""
+    aware = dt.replace(tzinfo=timezone.utc)
+    return aware.astimezone().strftime(fmt)
+
+
+def _local_iso(dt: datetime) -> str:
+    """Convert a UTC-naive datetime to local time ISO string."""
+    aware = dt.replace(tzinfo=timezone.utc)
+    return aware.astimezone().isoformat()
+
+
+templates.env.filters["local_time"] = _local_time
+templates.env.filters["local_iso"] = _local_iso
 
 
 @asynccontextmanager

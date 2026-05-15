@@ -48,7 +48,7 @@ status_key == "disconnected" else "Inactive")) %}
       </p>
     </div>
     <time class="shrink-0 text-[11px] tabular-nums text-slate-500" data-relative
-      datetime="{{ task.last_seen.isoformat() }}">{{ task.last_seen.strftime("%H:%M:%S") }}</time>
+      datetime="{{ task.last_seen | local_iso }}">{{ task.last_seen | local_time }}</time>
   </a>
   <div class="flex shrink-0 items-center px-1">
     <button type="button" class="rounded-md p-2 text-slate-500 transition hover:bg-red-950/50 hover:text-red-300"
