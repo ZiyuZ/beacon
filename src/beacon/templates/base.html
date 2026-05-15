@@ -375,10 +375,35 @@
     }
 
     #log-container .log-row {
+      display: flex;
+      align-items: flex-start;
       line-height: 1.32;
       padding: 0.0625rem 0;
     }
+    /* Level-colored left bar on log rows */
+    .log-row-bar {
+      display: inline-block;
+      width: 0;
+      height: auto;
+      border-left: 3px solid transparent;
+      margin-right: 0.35rem;
+      align-self: stretch;
+      flex-shrink: 0;
+    }
+    .log-row[data-level="DEBUG"] .log-row-bar { border-left-color: #94a3b8; }
+    .log-row[data-level="INFO"] .log-row-bar { border-left-color: #60a5fa; }
+    .log-row[data-level="SUCCESS"] .log-row-bar { border-left-color: #86efac; }
+    .log-row[data-level="WARNING"] .log-row-bar,
+    .log-row[data-level="WARN"] .log-row-bar { border-left-color: #fcd34d; }
+    .log-row[data-level="ERROR"] .log-row-bar { border-left-color: #f87171; }
+    .log-row[data-level="CRITICAL"] .log-row-bar { border-left-color: #ef4444; }
+    .log-row[data-level="__TASK_DONE__"] .log-row-bar { border-left-color: #64748b; }
 
+    .log-row-msg {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
     #log-container .log-row details {
       margin: 0;
     }
@@ -725,6 +750,26 @@
     };
   </script>
   <script>
+    window.beaconMarkDone = async function (target) {
+      var task =
+        typeof target === "string"
+          ? target
+          : target && target.getAttribute("data-task");
+      if (!task) return;
+      if (!confirm('Mark "' + task + '" as done? The task status will flip to inactive.')) return;
+      target.disabled = true;
+      var res = await window.beaconAuthFetch(
+        "/api/tasks/" + encodeURIComponent(task) + "/done",
+        { method: "POST" }
+      );
+      if (!res.ok) {
+        target.disabled = false;
+        var msg = await res.text();
+        alert("Failed to mark done (" + res.status + "): " + msg.slice(0, 200));
+        return;
+      }
+    };
+
     window.beaconDeleteInactiveTasks = async function () {
       if (
         !confirm(

@@ -66,6 +66,13 @@
     />
     <button
       type="button"
+      class="shrink-0 rounded-md border border-sky-800/50 bg-sky-950/30 px-2 py-1 text-[11px] font-medium text-sky-300 transition hover:bg-sky-950/50"
+      data-task="{{ task }}"
+      onclick="beaconMarkDone(this);"
+      title="Mark this task as done"
+    >Mark done</button>
+    <button
+      type="button"
       class="shrink-0 rounded-md border border-red-900/50 bg-red-950/30 px-2 py-1 text-[11px] font-medium text-red-300 transition hover:bg-red-950/50"
       data-task="{{ task }}"
       onclick="beaconDeleteTask(this);"
@@ -79,7 +86,7 @@
 
   <div
     id="log-container"
-    class="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden rounded-xl border border-slate-800 bg-black/40 p-2 font-mono text-[12px] leading-snug tracking-[-0.01em]"
+    class="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden rounded-xl border border-slate-800 bg-black/40 px-1.5 py-2 font-mono text-[12px] leading-snug tracking-[-0.01em]"
     style="overflow-wrap: anywhere;"
   >
     <div

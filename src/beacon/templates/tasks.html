@@ -13,6 +13,16 @@
 {% endblock %}
 
 {% block content %}
+  <div class="flex shrink-0 flex-wrap items-center gap-2 mb-3">
+    <input
+      id="task-search"
+      type="search"
+      placeholder="Search tasks..."
+      class="min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-800/40 px-2 py-1 text-xs text-slate-100 placeholder:text-slate-500 focus:border-slate-500 focus:outline-none"
+      autocomplete="off"
+      spellcheck="false"
+    />
+  </div>
   <ul
     id="task-list"
     class="divide-y divide-slate-800 overflow-hidden rounded-xl border border-slate-800 bg-slate-900/40"
@@ -22,4 +32,25 @@
   >
     {% include "partials/task_list.html" %}
   </ul>
+  <script>
+    (function () {
+      var search = document.getElementById("task-search");
+      if (!search) return;
+      var list = document.getElementById("task-list");
+
+      function applyTaskSearch() {
+        var q = search.value.toLowerCase();
+        list.querySelectorAll("[data-task-name]").forEach(function (li) {
+          var name = li.getAttribute("data-task-name").toLowerCase();
+          li.classList.toggle("search-hidden", q && !name.includes(q));
+        });
+      }
+
+      search.addEventListener("input", applyTaskSearch);
+
+      list.addEventListener("htmx:afterSwap", function () {
+        if (search.value) applyTaskSearch();
+      });
+    })();
+  </script>
 {% endblock %}
