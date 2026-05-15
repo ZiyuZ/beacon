@@ -224,7 +224,7 @@ Beacon flips a task to `inactive` after 30s of silence by default.
 When a script finishes cleanly you can explicitly tell Beacon the task
 is complete so it shows as `inactive` immediately instead of waiting
 for the time window to expire. This is purely cosmetic but helpful for
-short scripts that finish before the 30s window.
+short scripts that finish before the 30-minute window.
 
 Via the Python client — reuse the same ``BeaconClient``:
 
@@ -390,10 +390,10 @@ again — sinks do not survive `fork`/`spawn` automatically.
 | `[beacon.sink] 401` on stderr | Missing or wrong bearer token | Re-check `BEACON_TOKEN`; on the server, `cat data/beacon.token` |
 | Logs lag a few seconds | Server polls every 1s; sink uses `enqueue=True` | Expected; latency cap is ~1.5s |
 | Last few lines missing on script exit | Background queue not flushed | `logger.complete()` in a `finally` block |
-| Server's `/api/tasks` keeps showing `inactive` | No log within `BEACON_RUNNING_WINDOW_S` (30s) | Add a periodic `logger.debug("alive")` heartbeat, or increase the window via `--running-window-s` |
+| Server's `/api/tasks` keeps showing `inactive` | No log within `BEACON_RUNNING_WINDOW_S` (1800s) | Add a periodic `logger.debug("alive")` heartbeat, or increase the window via `--running-window-s` |
 | Task is `inactive` too long after a `__TASK_DONE__` sentinel | That is expected | It stays inactive until a new log comes in — normal if the script is truly done |
 | Server returns 409 on delete | Task is still active | User can confirm "delete anyway" in the UI; from CLI add `?force=true` |
-| Task stays `running` after script exits | No `mark_done()` called, waiting for time window | Call `mark_done()` at end of script, or just wait `running_window_seconds` (default 30s) |
+| Task stays `running` after script exits | No `mark_done()` called, waiting for time window | Call `mark_done()` at end of script, or just wait `running_window_seconds` (default 1800s / 30min) |
 | `[beacon.mark_done]` on stderr | Network issue or wrong URL | Verify the server URL and that the task exists |
 | Recursion / spam in stderr | Custom `logger.exception` inside a sink fallback | Beacon's sink uses `print(..., file=sys.stderr)` for this exact reason; do not replace it with `logger.exception` |
 

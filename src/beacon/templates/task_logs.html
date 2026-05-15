@@ -5,207 +5,165 @@
 {% block main_gap %}gap-2{% endblock %}
 
 {# Pin the body to one viewport so the log container can scroll inside it
-   without the page itself scrolling. #}
+without the page itself scrolling. #}
 {% block body_class %}flex h-dvh flex-col overflow-hidden antialiased{% endblock %}
 
 {# Detail page uses far more horizontal space; line wrapping handles narrow
-   widths via whitespace-pre-wrap + break-words on each row. #}
+widths via whitespace-pre-wrap + break-words on each row. #}
 {% block main_max %}max-w-screen-2xl{% endblock %}
 
 {% block brand %}
-  <div class="flex min-w-0 flex-1 items-center gap-2">
-    <a
-      href="/"
-      class="flex min-w-0 shrink items-center gap-2 rounded-md text-base font-semibold tracking-tight text-slate-100 outline-none ring-sky-500/40 transition hover:text-white focus-visible:ring-2"
-      aria-label="Back to all tasks"
-    >
-      <img
-        src="/favicon.svg"
-        alt=""
-        width="28"
-        height="28"
-        class="brand-mark"
-        decoding="async"
-      />
-      <span class="truncate">Beacon</span>
-    </a>
-    <span class="shrink-0 text-slate-600">/</span>
-    <span class="truncate text-base font-medium text-slate-300">{{ task }}</span>
-  </div>
+<div class="flex min-w-0 flex-1 items-center gap-2">
+  <a href="/"
+    class="flex min-w-0 shrink items-center gap-2 rounded-md text-base font-semibold tracking-tight text-slate-100 outline-none ring-sky-500/40 transition hover:text-white focus-visible:ring-2"
+    aria-label="Back to all tasks">
+    <img src="/favicon.svg" alt="" width="28" height="28" class="brand-mark" decoding="async" />
+    <span class="truncate">Beacon</span>
+  </a>
+  <span class="shrink-0 text-slate-600">/</span>
+  <span class="truncate text-base font-medium text-slate-300">{{ task }}</span>
+</div>
 {% endblock %}
 
 {% block header_right %}
-  <button
-    type="button"
-    id="follow-toggle"
-    class="rounded-md border border-slate-700 bg-slate-800/60 px-2 py-1 text-xs font-medium text-slate-200 transition hover:bg-slate-700"
-    aria-pressed="true"
-  >Following</button>
+<button type="button" id="follow-toggle"
+  class="rounded-md border border-slate-700 bg-slate-800/60 px-2 py-1 text-xs font-medium text-slate-200 transition hover:bg-slate-700"
+  aria-pressed="true">Following</button>
 {% endblock %}
 
 {% block content %}
-  {# Toolbar: level chips + search + "updated XYs ago" #}
-  <div class="flex shrink-0 flex-wrap items-center gap-2">
-    <div id="level-filter" class="flex flex-wrap gap-1" role="group" aria-label="Filter by level">
-      {% for lvl in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "__TASK_DONE__"] %}
-        <button
-          type="button"
-          data-level="{{ lvl }}"
-          class="chip level-{{ lvl }}"
-          aria-pressed="true"
-        >{{ lvl }}</button>
-      {% endfor %}
-    </div>
-    <input
-      id="log-search"
-      type="search"
-      placeholder="Search messages..."
-      class="ml-1 min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-800/40 px-2 py-1 text-xs text-slate-100 placeholder:text-slate-500 focus:border-slate-500 focus:outline-none"
-      autocomplete="off"
-      spellcheck="false"
-    />
-    <button
-      type="button"
-      class="shrink-0 rounded-md border border-sky-800/50 bg-sky-950/30 px-2 py-1 text-[11px] font-medium text-sky-300 transition hover:bg-sky-950/50"
-      data-task="{{ task }}"
-      onclick="beaconMarkDone(this);"
-      title="Mark this task as done"
-    >Mark done</button>
-    <button
-      type="button"
-      class="shrink-0 rounded-md border border-red-900/50 bg-red-950/30 px-2 py-1 text-[11px] font-medium text-red-300 transition hover:bg-red-950/50"
-      data-task="{{ task }}"
-      onclick="beaconDeleteTask(this);"
-      title="Delete all logs for this task"
-    >Clear task</button>
-    <span class="ml-auto shrink-0 text-[11px] text-slate-500">
-      updated
-      <time id="updated-at" data-relative datetime="">never</time>
-    </span>
+{# Toolbar: level chips + search + "updated XYs ago" #}
+<div class="flex shrink-0 flex-wrap items-center gap-2">
+  <div id="level-filter" class="flex flex-wrap gap-1" role="group" aria-label="Filter by level">
+    {% for lvl in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "__TASK_DONE__"] %}
+    <button type="button" data-level="{{ lvl }}" class="chip level-{{ lvl }}" aria-pressed="true">{{ lvl }}</button>
+    {% endfor %}
   </div>
+  <input id="log-search" type="search" placeholder="Search messages..."
+    class="ml-1 min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-800/40 px-2 py-1 text-xs text-slate-100 placeholder:text-slate-500 focus:border-slate-500 focus:outline-none"
+    autocomplete="off" spellcheck="false" />
+  <button type="button"
+    class="shrink-0 rounded-md border border-sky-800/50 bg-sky-950/30 px-2 py-1 text-[11px] font-medium text-sky-300 transition hover:bg-sky-950/50"
+    data-task="{{ task }}" onclick="beaconMarkDone(this);" title="Mark this task as done">Mark done</button>
+  <button type="button"
+    class="shrink-0 rounded-md border border-red-900/50 bg-red-950/30 px-2 py-1 text-[11px] font-medium text-red-300 transition hover:bg-red-950/50"
+    data-task="{{ task }}" onclick="beaconDeleteTask(this);" title="Delete all logs for this task">Clear task</button>
+  <span class="ml-auto shrink-0 text-[11px] text-slate-500">
+    updated
+    <time id="updated-at" data-relative datetime="">never</time>
+  </span>
+</div>
 
-  <div
-    id="log-container"
-    class="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden rounded-xl border border-slate-800 bg-black/40 px-1.5 py-2 font-mono text-[12px] leading-snug tracking-[-0.01em]"
-    style="overflow-wrap: anywhere;"
-  >
-    <div
-      id="log-stream"
-      hx-get="/partials/logs/{{ task | urlencode }}"
-      hx-trigger="load, every 1s"
-      hx-swap="beforeend"
-      hx-vals='js:{after_id: window.beaconCursor || 0}'
-    ></div>
-    <button
-      id="new-logs-badge"
-      type="button"
-      class="hidden"
-      aria-live="polite"
-    >
-      <span aria-hidden="true">▼</span>
-      <span id="new-logs-count">0</span> new
-    </button>
-  </div>
+<div id="log-container"
+  class="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden rounded-xl border border-slate-800 bg-black/40 px-1.5 py-2 font-mono text-[12px] leading-snug tracking-[-0.01em]"
+  style="overflow-wrap: anywhere;">
+  <div id="log-stream" hx-get="/partials/logs/{{ task | urlencode }}" hx-trigger="load, every 1s" hx-swap="beforeend"
+    hx-vals='js:{after_id: window.beaconCursor || 0}'></div>
+  <button id="new-logs-badge" type="button" class="hidden" aria-live="polite">
+    <span aria-hidden="true">▼</span>
+    <span id="new-logs-count">0</span> new
+  </button>
+</div>
 
-  <script>
-    (function () {
-      window.beaconCursor = 0;
-      const container = document.getElementById("log-container");
-      const stream = document.getElementById("log-stream");
-      const toggle = document.getElementById("follow-toggle");
-      const badge = document.getElementById("new-logs-badge");
-      const badgeCount = document.getElementById("new-logs-count");
-      const search = document.getElementById("log-search");
-      const filter = document.getElementById("level-filter");
-      const updated = document.getElementById("updated-at");
-      let following = true;
-      let pendingNew = 0;
-      let beforeCount = 0;
+<script>
+  (function () {
+    window.beaconCursor = 0;
+    const container = document.getElementById("log-container");
+    const stream = document.getElementById("log-stream");
+    const toggle = document.getElementById("follow-toggle");
+    const badge = document.getElementById("new-logs-badge");
+    const badgeCount = document.getElementById("new-logs-count");
+    const search = document.getElementById("log-search");
+    const filter = document.getElementById("level-filter");
+    const updated = document.getElementById("updated-at");
+    let following = true;
+    let pendingNew = 0;
+    let beforeCount = 0;
 
-      function setFollowing(next) {
-        following = next;
-        toggle.textContent = next ? "Following" : "Paused";
-        toggle.setAttribute("aria-pressed", next ? "true" : "false");
-        toggle.classList.toggle("bg-amber-500/20", !next);
-        toggle.classList.toggle("text-amber-200", !next);
-        toggle.classList.toggle("border-amber-700/60", !next);
-        if (next) {
-          resetPending();
-          scrollBottom();
-        }
+    function setFollowing(next) {
+      following = next;
+      toggle.textContent = next ? "Following" : "Paused";
+      toggle.setAttribute("aria-pressed", next ? "true" : "false");
+      toggle.classList.toggle("bg-amber-500/20", !next);
+      toggle.classList.toggle("text-amber-200", !next);
+      toggle.classList.toggle("border-amber-700/60", !next);
+      if (next) {
+        resetPending();
+        scrollBottom();
       }
-      function scrollBottom() {
-        container.scrollTop = container.scrollHeight;
+    }
+    function scrollBottom() {
+      container.scrollTop = container.scrollHeight;
+    }
+    function resetPending() {
+      pendingNew = 0;
+      badge.classList.add("hidden");
+    }
+
+    toggle.addEventListener("click", function () {
+      setFollowing(!following);
+    });
+    badge.addEventListener("click", function () {
+      setFollowing(true);
+    });
+
+    // Auto-pause when the user scrolls up; auto-resume near the bottom.
+    container.addEventListener("scroll", function () {
+      const distance =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+      if (distance < 24 && !following) setFollowing(true);
+      else if (distance > 64 && following) setFollowing(false);
+    });
+
+    stream.addEventListener("htmx:beforeSwap", function () {
+      beforeCount = stream.querySelectorAll("[data-log-id]").length;
+    });
+
+    stream.addEventListener("htmx:afterSwap", function () {
+      const lines = stream.querySelectorAll("[data-log-id]");
+      let max = window.beaconCursor;
+      lines.forEach(function (el) {
+        const id = parseInt(el.getAttribute("data-log-id"), 10);
+        if (!isNaN(id) && id > max) max = id;
+      });
+      window.beaconCursor = max;
+
+      const added = lines.length - beforeCount;
+      if (!following && added > 0) {
+        pendingNew += added;
+        badgeCount.textContent = pendingNew;
+        badge.classList.remove("hidden");
       }
-      function resetPending() {
-        pendingNew = 0;
-        badge.classList.add("hidden");
+
+      if (updated) {
+        updated.setAttribute("datetime", new Date().toISOString());
+        if (window.beaconRefreshTimes) window.beaconRefreshTimes(updated.parentElement);
       }
 
-      toggle.addEventListener("click", function () {
-        setFollowing(!following);
+      if (search.value) applySearch();
+
+      if (following) scrollBottom();
+    });
+
+    // Level chips
+    filter.querySelectorAll("button[data-level]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const level = btn.dataset.level;
+        const isOff = btn.classList.toggle("chip-off");
+        btn.setAttribute("aria-pressed", isOff ? "false" : "true");
+        container.classList.toggle("hide-" + level, isOff);
       });
-      badge.addEventListener("click", function () {
-        setFollowing(true);
+    });
+
+    // Substring search across visible rows
+    function applySearch() {
+      const q = search.value.toLowerCase();
+      stream.querySelectorAll("[data-log-id]").forEach(function (row) {
+        const matches = !q || row.textContent.toLowerCase().includes(q);
+        row.classList.toggle("search-hidden", !matches);
       });
-
-      // Auto-pause when the user scrolls up; auto-resume near the bottom.
-      container.addEventListener("scroll", function () {
-        const distance =
-          container.scrollHeight - container.scrollTop - container.clientHeight;
-        if (distance < 24 && !following) setFollowing(true);
-        else if (distance > 64 && following) setFollowing(false);
-      });
-
-      stream.addEventListener("htmx:beforeSwap", function () {
-        beforeCount = stream.querySelectorAll("[data-log-id]").length;
-      });
-
-      stream.addEventListener("htmx:afterSwap", function () {
-        const lines = stream.querySelectorAll("[data-log-id]");
-        let max = window.beaconCursor;
-        lines.forEach(function (el) {
-          const id = parseInt(el.getAttribute("data-log-id"), 10);
-          if (!isNaN(id) && id > max) max = id;
-        });
-        window.beaconCursor = max;
-
-        const added = lines.length - beforeCount;
-        if (!following && added > 0) {
-          pendingNew += added;
-          badgeCount.textContent = pendingNew;
-          badge.classList.remove("hidden");
-        }
-
-        if (updated) {
-          updated.setAttribute("datetime", new Date().toISOString());
-          if (window.beaconRefreshTimes) window.beaconRefreshTimes(updated.parentElement);
-        }
-
-        if (search.value) applySearch();
-
-        if (following) scrollBottom();
-      });
-
-      // Level chips
-      filter.querySelectorAll("button[data-level]").forEach(function (btn) {
-        btn.addEventListener("click", function () {
-          const level = btn.dataset.level;
-          const isOff = btn.classList.toggle("chip-off");
-          btn.setAttribute("aria-pressed", isOff ? "false" : "true");
-          container.classList.toggle("hide-" + level, isOff);
-        });
-      });
-
-      // Substring search across visible rows
-      function applySearch() {
-        const q = search.value.toLowerCase();
-        stream.querySelectorAll("[data-log-id]").forEach(function (row) {
-          const matches = !q || row.textContent.toLowerCase().includes(q);
-          row.classList.toggle("search-hidden", !matches);
-        });
-      }
-      search.addEventListener("input", applySearch);
-    })();
-  </script>
+    }
+    search.addEventListener("input", applySearch);
+  })();
+</script>
 {% endblock %}

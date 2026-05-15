@@ -41,7 +41,7 @@ def compute_status(
     last_level: str,
     *,
     now: datetime | None = None,
-    running_window_seconds: int = 30,
+    running_window_seconds: int = 1800,
 ) -> TaskStatus:
     """Derive a task status from its most recent log entry.
 
@@ -68,7 +68,7 @@ def list_task_summaries(
     session: Session,
     *,
     now: datetime | None = None,
-    running_window_seconds: int = 30,
+    running_window_seconds: int = 1800,
 ) -> list[TaskSummary]:
     """Return one summary per task, ordered by recency."""
 

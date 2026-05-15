@@ -24,5 +24,5 @@ def load_settings() -> Settings:
         api_token=os.environ.get("BEACON_API_TOKEN", ""),
         admin_password=os.environ.get("BEACON_ADMIN_PASSWORD", ""),
         sqlite_path=sqlite_path,
-        running_window_seconds=int(os.environ.get("BEACON_RUNNING_WINDOW_S", "30")),
+        running_window_seconds=int(os.environ.get("BEACON_RUNNING_WINDOW_S", "1800")),
     )

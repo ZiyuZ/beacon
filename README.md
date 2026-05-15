@@ -133,7 +133,7 @@ uv run beacon -h
 | `--admin-password`  | _from env_           | Admin password for Web UI login. Falls back to `BEACON_ADMIN_PASSWORD`, then auto-generated. |
 | `--no-auth`         | off                  | Disables bearer auth entirely. Local trusted networks only.    |
 | `--db`              | `data/beacon.db`     | SQLite path. Also via `BEACON_SQLITE_PATH`.                    |
-| `--running-window-s`| `30`                 | Seconds without logs before a task is `inactive`.              |
+| `--running-window-s`| `1800` (30min)       | Seconds without logs before a task is `inactive`.              |
 | `--workers`         | `1`                  | Keep at 1 unless you front it with shared storage.             |
 | `--version`, `-V`   |                      | Prints the installed version.                                  |
 
@@ -251,7 +251,7 @@ this same set so flags and env behave identically.
 | `BEACON_API_TOKEN`        | _(auto-generated)_ | Shared bearer token. Empty string disables auth.              |
 | `BEACON_ADMIN_PASSWORD`   | _(auto-generated)_ | Admin password used by the Web UI login to obtain a JWT.      |
 | `BEACON_SQLITE_PATH`      | `data/beacon.db`   | Where to put the SQLite file.                                 |
-| `BEACON_RUNNING_WINDOW_S` | `30`               | Seconds without logs before a task is considered `inactive`.  |
+| `BEACON_RUNNING_WINDOW_S` | `1800` (30min)     | Seconds without logs before a task is considered `inactive`.  |
 
 A starter `.env.example` is checked in; copy to `.env` for compose use.
 
