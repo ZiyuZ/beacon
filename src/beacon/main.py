@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select, col
 
+from beacon.api import auth_router as auth_api_router
 from beacon.api import router as api_router
 from beacon.api.deps import get_session, get_settings
 from beacon.config import Settings
@@ -29,6 +30,7 @@ async def _lifespan(_: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Beacon", lifespan=_lifespan)
+    app.include_router(auth_api_router)
     app.include_router(api_router)
 
     @app.get("/favicon.svg")

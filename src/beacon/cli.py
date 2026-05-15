@@ -83,6 +83,13 @@ def serve(
         help="Shared bearer token. Auto-generated and persisted if omitted.",
         show_envvar=True,
     ),
+    admin_password: str | None = typer.Option(
+        None,
+        "--admin-password",
+        envvar="BEACON_ADMIN_PASSWORD",
+        help="Admin password for Web UI login. Auto-generated if omitted.",
+        show_envvar=True,
+    ),
     no_auth: bool = typer.Option(
         False,
         "--no-auth",
@@ -139,6 +146,11 @@ def serve(
         effective_token = token or _ensure_token(db_path)
         os.environ["BEACON_API_TOKEN"] = effective_token
 
+    # Admin password for Web UI login
+    if not admin_password:
+        admin_password = secrets.token_urlsafe(16)
+    os.environ["BEACON_ADMIN_PASSWORD"] = admin_password
+
     typer.secho(
         f"Beacon listening on http://{host}:{port}",
         fg=typer.colors.GREEN,
@@ -156,6 +168,11 @@ def serve(
             fg=typer.colors.CYAN,
             err=True,
         )
+    typer.secho(
+        f"  admin password: {admin_password}",
+        fg=typer.colors.MAGENTA,
+        err=True,
+    )
     typer.secho(f"  sqlite: {db_path}", fg=typer.colors.BRIGHT_BLACK, err=True)
 
     import uvicorn

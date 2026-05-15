@@ -3,9 +3,15 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from pydantic import BaseModel
 from sqlmodel import Session, select, col
 
-from beacon.api.deps import get_session, get_settings, require_token
+from beacon.api.deps import (
+    create_login_jwt,
+    get_session,
+    get_settings,
+    require_token,
+)
 from beacon.config import Settings
 from beacon.models.log_entry import LogEntry, LogEntryCreate, LogEntryRead
 from beacon.services.tasks import (
@@ -14,6 +20,38 @@ from beacon.services.tasks import (
     delete_task_logs,
     list_task_summaries,
 )
+
+# ── Auth router (no token required) ──────────────────────────────────────
+
+auth_router = APIRouter(prefix="/api/auth")
+
+
+class LoginRequest(BaseModel):
+    password: str
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+@auth_router.post("/login", response_model=LoginResponse)
+def login(payload: LoginRequest, settings: Settings = Depends(get_settings)) -> LoginResponse:
+    if not settings.admin_password:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail="admin password is not configured",
+        )
+    if payload.password != settings.admin_password:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            detail="incorrect password",
+        )
+    token = create_login_jwt(settings.admin_password)
+    return LoginResponse(access_token=token)
+
+
+# ── Main API router (token / JWT required) ──────────────────────────────
 
 router = APIRouter(prefix="/api", dependencies=[Depends(require_token)])
 

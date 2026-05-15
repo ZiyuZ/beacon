@@ -1,3 +1,3 @@
-from beacon.api.routes import router
+from beacon.api.routes import auth_router, router
 
-__all__ = ["router"]
+__all__ = ["auth_router", "router"]

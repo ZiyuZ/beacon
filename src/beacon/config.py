@@ -8,6 +8,7 @@ from pathlib import Path
 @dataclass(frozen=True)
 class Settings:
     api_token: str
+    admin_password: str
     sqlite_path: Path
     running_window_seconds: int
 
@@ -21,6 +22,7 @@ def load_settings() -> Settings:
     sqlite_path.parent.mkdir(parents=True, exist_ok=True)
     return Settings(
         api_token=os.environ.get("BEACON_API_TOKEN", ""),
+        admin_password=os.environ.get("BEACON_ADMIN_PASSWORD", ""),
         sqlite_path=sqlite_path,
         running_window_seconds=int(os.environ.get("BEACON_RUNNING_WINDOW_S", "30")),
     )
