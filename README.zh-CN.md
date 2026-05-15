@@ -8,7 +8,7 @@
 轻量级个人日志面板：脚本通过 HTTP 上报日志，在手机或浏览器里实时查看。SQLite + FastAPI + HTMX，无需 agent，也不用维护一整套可观测性栈。
 
 ![Status](https://img.shields.io/badge/status-alpha-orange)
-![Python](https://img.shields.io/badge/python-3.13%2B-blue)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 
 ## 这是什么
 
@@ -20,12 +20,12 @@
 
 ## 快速开始
 
-需要 Python 3.13+ 与 [uv](https://docs.astral.sh/uv/)。
+需要 Python 3.10+ 与 [uv](https://docs.astral.sh/uv/)。
 
 ```bash
 git clone https://github.com/ZiyuZ/beacon.git
 cd beacon
-uv sync
+uv sync --extra server
 uv run beacon
 ```
 
@@ -50,14 +50,19 @@ uv run beacon-demo training_a -i 0.5
 
 ## 在脚本里上报真实日志
 
-把 Beacon 加到你的日志工程里。在包尚未发布到 PyPI 之前，常用两种方式：
+把 Beacon 加到你的日志工程里。依赖按用途拆分：
+
+| 安装命令 | 包含的依赖 | 用途 |
+|---|---|---|
+| `uv add "beacon @ git+..."` | `httpx` + `typer` | 最轻量：`BeaconClient`、`mark_done()`、`beacon-demo` |
+| `uv add "beacon[client] @ git+..."` | ↑ + `loguru` | 使用 Loguru sink（`beacon.sink(task=...)`） |
+| `uv add "beacon[server] @ git+..."` | ↑ + 服务端全部依赖 | 运行 Beacon 服务端 |
+
+本地已有克隆时：
 
 ```bash
-# 从 Git 安装，并带上可选 extra `client`（内含 loguru）：
-uv add "beacon[client] @ git+https://github.com/ZiyuZ/beacon.git"
-
-# 或者本地已有克隆时，使用可编辑安装：
-uv add --editable "../beacon[client]"
+uv add --editable "../beacon"           # client only
+uv add --editable "../beacon[server]"   # full server
 ```
 
 然后在现有 Loguru 配置里挂上 sink：

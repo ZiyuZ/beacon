@@ -1,22 +1,15 @@
 [project]
 name = "beacon"
 version = "0.3.0"
-description = "Add your description here"
+description = "Lightweight personal log dashboard"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.10"
 authors = [
   { name = "ZiyuZ", email = "19648091+ZiyuZ@users.noreply.github.com" }
 ]
 dependencies = [
-  "fastapi[standard-no-fastapi-cloud-cli]>=0.136.1",
   "httpx>=0.28.1",
-  "jinja2>=3.1.6",
-  "loguru>=0.7.3",
-  "pyjwt[crypto]>=2.12.1",
-  "python-multipart>=0.0.27",
-  "sqlmodel>=0.0.38",
   "typer>=0.25.1",
-  "uvicorn[standard]>=0.46.0",
 ]
 
 [project.scripts]
@@ -26,6 +19,15 @@ beacon-demo = "beacon.client.demo:app"
 [project.optional-dependencies]
 client = [
   "loguru>=0.7.3",
+]
+server = [
+  "fastapi[standard-no-fastapi-cloud-cli]>=0.136.1",
+  "jinja2>=3.1.6",
+  "loguru>=0.7.3",
+  "pyjwt[crypto]>=2.12.1",
+  "python-multipart>=0.0.27",
+  "sqlmodel>=0.0.38",
+  "uvicorn[standard]>=0.46.0",
 ]
 
 [build-system]

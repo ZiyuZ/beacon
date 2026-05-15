@@ -10,7 +10,7 @@ watch them live from a phone or laptop. SQLite + FastAPI + HTMX, no agents,
 no observability stack to babysit.
 
 ![Status](https://img.shields.io/badge/status-alpha-orange)
-![Python](https://img.shields.io/badge/python-3.13%2B-blue)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 
 ## What it is
 
@@ -29,12 +29,12 @@ terminal. It is a personal panel for a handful of long-running scripts.
 
 ## Quick start
 
-Requires Python 3.13+ and [uv](https://docs.astral.sh/uv/).
+Requires Python 3.10+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 git clone https://github.com/ZiyuZ/beacon.git
 cd beacon
-uv sync
+uv sync --extra server
 uv run beacon
 ```
 
@@ -62,17 +62,24 @@ uv run beacon-demo training_a -i 0.5
 `beacon-demo` reads the same `data/beacon.token`, so you do not need to
 copy the token around for local testing.
 
-## Sending real logs from your scripts
+## Installation
 
-Add Beacon to whichever project does the logging. You have two practical options:
+Beacon's dependencies are split so you only install what you need.
+
+| Install command | What you get | Use case |
+|---|---|---|
+| `uv add "beacon @ git+..."` | `httpx` + `typer` | Lightest: use `BeaconClient`, `mark_done()`, `beacon-demo` CLI |
+| `uv add "beacon[client] @ git+..."` | ↑ + `loguru` | Add the Loguru sink (`beacon.sink(task=...)`) |
+| `uv add "beacon[server] @ git+..."` | ↑ + server deps | Run the Beacon server itself |
+
+If you have the repo cloned locally:
 
 ```bash
-# from git, with the optional `client` extra (loguru):
-uv add "beacon[client] @ git+https://github.com/ZiyuZ/beacon.git"
-
-# or, if you already have the repo cloned locally:
-uv add --editable "../beacon[client]"
+uv add --editable "../beacon"           # client only
+uv add --editable "../beacon[server]"   # full server
 ```
+
+## Sending real logs from your scripts
 
 Then add the sink to your existing Loguru setup:
 
