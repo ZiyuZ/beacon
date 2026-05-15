@@ -1,3 +1,4 @@
+{% set LVL = {"DEBUG":"D","INFO":"I","SUCCESS":"S","WARNING":"W","WARN":"W","ERROR":"E","CRITICAL":"C"} %}
 {% for entry in entries %}
 {% set msg = entry.message %}
 {% set extra_lines = msg.count("\n") %}
@@ -17,8 +18,13 @@
 {% else %}
 <div data-log-id="{{ entry.id }}" data-level="{{ entry.level }}" class="log-row">
   <span class="log-row-bar"></span>
-  <span class="tabular-nums text-slate-500">{{ entry.timestamp.strftime("%H:%M:%S") }}</span>
-  <span class="level-{{ entry.level }} font-semibold">[{{ "%-8s" | format(entry.level) }}]</span>
+  <span class="log-row-meta">
+    <span class="log-time">{{ entry.timestamp.strftime("%H:%M:%S") }}</span>
+    <span class="level-{{ entry.level }} font-semibold log-level">
+      <span class="ll-full">[{{ "%-8s" | format(entry.level) }}]</span>
+      <span class="ll-abbr">[{{ LVL.get(entry.level.upper(), "?") }}]</span>
+    </span>
+  </span>
   {% if extra_lines > 0 %}
   {% set first, _, rest = msg.partition("\n") %}
   <details class="log-row-msg">

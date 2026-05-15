@@ -35,8 +35,7 @@ widths via whitespace-pre-wrap + break-words on each row. #}
 {# Toolbar: level chips + search + "updated XYs ago" #}
 <div class="flex shrink-0 flex-wrap items-center gap-2">
   <div id="level-filter" class="flex flex-wrap gap-1" role="group" aria-label="Filter by level">
-    {% for lvl in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "__TASK_DONE__", "__TASK_CONNECT__",
-    "__TASK_DISCONNECT__"] %}
+    {% for lvl in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] %}
     <button type="button" data-level="{{ lvl }}" class="chip level-{{ lvl }}" aria-pressed="true">{{ lvl }}</button>
     {% endfor %}
   </div>

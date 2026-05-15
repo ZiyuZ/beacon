@@ -392,6 +392,37 @@
       padding: 0.0625rem 0;
     }
 
+    /* Time + level columns: fixed widths, never wrap */
+    .log-row-meta {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0;
+      flex-shrink: 0;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    .log-time {
+      display: inline-block;
+      width: 5.2em;
+      text-align: right;
+      margin-right: 0.4em;
+    }
+    .log-level {
+      display: inline-block;
+      width: 6.5em;
+      text-align: left;
+      margin-right: 0.4em;
+      overflow: hidden;
+    }
+    .ll-abbr { display: none; }     /* desktop: hide abbr */
+
+    /* On narrow screens, swap to single-letter abbr */
+    @media (max-width: 640px) {
+      .log-level { width: 2em; }
+      .ll-full { display: none; }
+      .ll-abbr { display: inline; text-align: center; }
+    }
+
     /* Level-colored left bar on log rows */
     .log-row-bar {
       display: inline-block;
