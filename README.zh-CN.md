@@ -12,9 +12,9 @@
 
 ## 这是什么
 
-- **服务端**（`beacon`）：FastAPI，三个 JSON 接口 + HTMX 小界面；数据存在单个 SQLite 文件里。
-- **客户端**（`beacon.client.remote_sink`）：Loguru 远端 sink，把日志发到服务端；另有 `beacon-demo` 命令行用于测试日志。
-- **任务状态**：最近 30 秒内有日志则为 `running`；最近一条是 `ERROR`/`CRITICAL` 则为 `error`；否则 `inactive`。无需单独的心跳接口。
+- **服务端**（`beacon`）：FastAPI，REST 接口 + HTMX 小界面；数据存在单个 SQLite 文件里。支持 JWT 登录（浏览器）和静态 token（脚本）两种认证方式。
+- **客户端**（`beacon.client.BeaconClient`）：Loguru 远端 sink，把日志发到服务端；另有 `beacon-demo` 命令行用于测试日志。
+- **任务状态**：最近 30 秒内有日志则为 `running`；最近一条是 `ERROR`/`CRITICAL` 则为 `error`；否则 `inactive`。支持通过 `POST /api/tasks/{task}/done` 主动标记任务完成。
 
 这不是 ELK/Loki 替代品，也不是多用户平台或 SSH 终端——只适合少量常驻脚本的个人监控面板。
 
@@ -29,11 +29,12 @@ uv sync
 uv run beacon
 ```
 
-首次启动会在终端打印自动生成的 Bearer Token 与 SQLite 路径，并在 `0.0.0.0:8000` 监听：
+首次启动会在终端打印自动生成的 Bearer Token、管理员密码与 SQLite 路径，并在 `0.0.0.0:8000` 监听：
 
 ```text
 Beacon listening on http://0.0.0.0:8000
   bearer token: NSxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  admin password: xxxxxxxxxxxxxxxx
   sqlite: /app/beacon/data/beacon.db
 ```
 
@@ -63,20 +64,21 @@ uv add --editable "../beacon[client]"
 
 ```python
 from loguru import logger
-from beacon.client.remote_sink import remote_sink
+from beacon.client import BeaconClient
+
+beacon = BeaconClient(url="http://your-server:8000", token="NSxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
 
 logger.add(
-    remote_sink(
-        url="http://your-server:8000",
-        task="training_a",
-        token="NSxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    ),
+    beacon.sink(task="training_a"),
     enqueue=True,       # 不阻塞主线程
     backtrace=False,
     diagnose=False,
 )
 
 logger.info("started")
+
+# 任务完成后主动标记结束
+beacon.mark_done(task="training_a")
 ```
 
 如果不想引入依赖，任意 HTTP 客户端直接调用 `POST /api/log` 即可：
@@ -215,7 +217,7 @@ docker compose up --build -d
 ```text
 src/beacon/
 ├── api/             # FastAPI 路由与鉴权依赖
-├── client/          # remote_sink 与 beacon-demo（可选 extra `client`）
+├── client/          # BeaconClient 与 beacon-demo（可选 extra `client`）
 ├── database/        # SQLite 引擎与会话
 ├── models/          # SQLModel LogEntry
 ├── services/        # 任务聚合与状态推断
