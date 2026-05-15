@@ -401,12 +401,15 @@
       white-space: nowrap;
       font-variant-numeric: tabular-nums;
     }
+
     .log-time {
       display: inline-block;
       width: 5.2em;
       text-align: right;
+      color: #64748b;
       margin-right: 0.4em;
     }
+
     .log-level {
       display: inline-block;
       width: 6.5em;
@@ -414,13 +417,27 @@
       margin-right: 0.4em;
       overflow: hidden;
     }
-    .ll-abbr { display: none; }     /* desktop: hide abbr */
+
+    .ll-abbr {
+      display: none;
+    }
+
+    /* desktop: hide abbr */
 
     /* On narrow screens, swap to single-letter abbr */
     @media (max-width: 640px) {
-      .log-level { width: 2em; }
-      .ll-full { display: none; }
-      .ll-abbr { display: inline; text-align: center; }
+      .log-level {
+        width: 2em;
+      }
+
+      .ll-full {
+        display: none;
+      }
+
+      .ll-abbr {
+        display: inline;
+        text-align: center;
+      }
     }
 
     /* Level-colored left bar on log rows */
