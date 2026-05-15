@@ -1,6 +1,18 @@
 {% for entry in entries %}
 {% set msg = entry.message %}
 {% set extra_lines = msg.count("\n") %}
+{% if entry.level in ("__TASK_CONNECT__", "__TASK_DONE__", "__TASK_DISCONNECT__") %}
+{% set sentinel_label = "▶ STARTED" if entry.level == "__TASK_CONNECT__" else ("⬥ COMPLETED ⬥" if entry.level ==
+"__TASK_DONE__" else "⬥ DISCONNECTED ⬥") %}
+<div data-log-id="{{ entry.id }}" data-level="{{ entry.level }}" class="log-row log-sentinel">
+  <span class="log-row-bar"></span>
+  <span class="log-sentinel-sep">
+    <span class="log-sentinel-sep-line"></span>
+    <span class="log-sentinel-sep-label">{{ sentinel_label }}</span>
+    <span class="log-sentinel-sep-line"></span>
+  </span>
+</div>
+{% else %}
 <div data-log-id="{{ entry.id }}" data-level="{{ entry.level }}" class="log-row">
   <span class="log-row-bar"></span>
   <span class="tabular-nums text-slate-500">{{ entry.timestamp.strftime("%H:%M:%S") }}</span>
@@ -16,4 +28,5 @@
   <span class="log-row-msg text-slate-100">{{ msg }}</span>
   {% endif %}
 </div>
+{% endif %}
 {% endfor %}

@@ -171,9 +171,14 @@
       font-weight: 600;
     }
 
-    .level-__TASK_DONE__ {
+    .level-__TASK_DONE__,
+    .level-__TASK_DISCONNECT__ {
       color: #64748b;
       font-style: italic;
+    }
+
+    .level-__TASK_CONNECT__ {
+      color: #64748b;
     }
 
     .status-running {
@@ -189,6 +194,18 @@
     .status-error {
       background-color: rgba(248, 113, 113, 0.15);
       color: #fca5a5;
+    }
+
+    .status-crashed {
+      background-color: rgba(248, 113, 113, 0.25);
+      color: #fca5a5;
+      font-weight: 600;
+    }
+
+    .status-dot-crashed {
+      background: #f87171;
+      box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2);
+      animation: none;
     }
 
     .status-pill {
@@ -300,6 +317,12 @@
     .hide-WARNING [data-level="WARNING"],
     .hide-ERROR [data-level="ERROR"],
     .hide-CRITICAL [data-level="CRITICAL"] {
+      display: none;
+    }
+
+    .hide-__TASK_DONE__ [data-level="__TASK_DONE__"],
+    .hide-__TASK_CONNECT__ [data-level="__TASK_CONNECT__"],
+    .hide-__TASK_DISCONNECT__ [data-level="__TASK_DISCONNECT__"] {
       display: none;
     }
 
@@ -417,8 +440,45 @@
       border-left-color: #ef4444;
     }
 
-    .log-row[data-level="__TASK_DONE__"] .log-row-bar {
+    .log-row[data-level="__TASK_DONE__"] .log-row-bar,
+    .log-row[data-level="__TASK_DISCONNECT__"] .log-row-bar {
       border-left-color: #64748b;
+    }
+
+    .log-row[data-level="__TASK_CONNECT__"] .log-row-bar {
+      border-left-color: #64748b;
+      border-left-style: dotted;
+    }
+
+    /* Sentinel row (CONNECT / DONE / DISCONNECT) */
+    .log-sentinel {
+      display: flex !important;
+      align-items: center;
+      gap: 0;
+      padding: 0.5rem 0 !important;
+      line-height: 1 !important;
+    }
+
+    .log-sentinel-sep {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      width: 100%;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #475569;
+    }
+
+    .log-sentinel-sep-line {
+      flex: 1;
+      height: 0;
+      border-top: 1px solid rgba(71, 85, 105, 0.35);
+    }
+
+    .log-sentinel-sep-label {
+      white-space: nowrap;
+      font-weight: 600;
     }
 
     .log-row-msg {

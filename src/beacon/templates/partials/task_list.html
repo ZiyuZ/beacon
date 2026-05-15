@@ -28,7 +28,8 @@
 {% else %}
 {% set status_key = status_raw|lower %}
 {% endif %}
-{% set status_label = "Running" if status_key == "running" else ("Error" if status_key == "error" else "Inactive") %}
+{% set status_label = "Running" if status_key == "running" else ("Error" if status_key == "error" else ("Crashed" if
+status_key == "crashed" else "Inactive")) %}
 <li class="flex items-stretch divide-x divide-slate-800" data-task-name="{{ task.task }}">
   <a href="/tasks/{{ task.task | urlencode }}"
     class="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3 transition hover:bg-slate-800/50 active:bg-slate-800">

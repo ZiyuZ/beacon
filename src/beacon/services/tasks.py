@@ -11,12 +11,19 @@ from beacon.models.log_entry import LogEntry
 
 ERROR_LEVELS = frozenset({"ERROR", "CRITICAL"})
 TASK_DONE_LEVEL = "__TASK_DONE__"
+TASK_CONNECT_LEVEL = "__TASK_CONNECT__"
+TASK_DISCONNECT_LEVEL = "__TASK_DISCONNECT__"
+
+SENTINEL_LEVELS = frozenset(
+    {TASK_DONE_LEVEL, TASK_CONNECT_LEVEL, TASK_DISCONNECT_LEVEL}
+)
 
 
 class TaskStatus(str, Enum):
     running = "running"
     inactive = "inactive"
     error = "error"
+    crashed = "crashed"
 
 
 class TaskSummary(BaseModel):
@@ -42,25 +49,42 @@ def compute_status(
     *,
     now: datetime | None = None,
     running_window_seconds: int = 1800,
+    has_connect: bool = False,
 ) -> TaskStatus:
     """Derive a task status from its most recent log entry.
 
     Priority (first match wins):
 
-    1. If the latest entry has level ``__TASK_DONE__`` the task has been
-       explicitly marked as finished → ``inactive``.
-    2. If the latest entry is older than *running_window_seconds* → ``inactive``.
-    3. If the latest level is ``ERROR`` or ``CRITICAL`` → ``error``.
-    4. Otherwise → ``running``.
+    1. ``__TASK_DONE__`` or ``__TASK_DISCONNECT__`` → ``inactive`` (clean exit).
+    2. Stale AND task has a ``__TASK_CONNECT__`` in its history → ``crashed``
+       (the script was using ``BeaconClient`` but never sent a disconnect).
+    3. Stale (no client, or legacy) → ``inactive``.
+    4. Recent ``ERROR`` / ``CRITICAL`` → ``error``.
+    5. Otherwise → ``running``.
     """
 
     now = now or datetime.now(timezone.utc)
-    if last_level.upper() == TASK_DONE_LEVEL:
+
+    # 1. Clean exit
+    if last_level.upper() in (TASK_DONE_LEVEL, TASK_DISCONNECT_LEVEL):
         return TaskStatus.inactive
-    if now - _ensure_aware(last_seen) > timedelta(seconds=running_window_seconds):
+
+    stale = now - _ensure_aware(last_seen) > timedelta(seconds=running_window_seconds)
+
+    # 2. Stale + has CONNECT in history → crashed (script used BeaconClient
+    #    but never sent a DISCONNECT / DONE before going silent).
+    if stale and has_connect:
+        return TaskStatus.crashed
+
+    # 3. Stale, no CONNECT → inactive (legacy script, or genuinely idle)
+    if stale:
         return TaskStatus.inactive
+
+    # 4. Recent ERROR / CRITICAL
     if last_level.upper() in ERROR_LEVELS:
         return TaskStatus.error
+
+    # 5. Running
     return TaskStatus.running
 
 
@@ -87,6 +111,17 @@ def list_task_summaries(
     )
     rows = session.exec(stmt).all()
 
+    # Check which tasks have a __TASK_CONNECT__ in their history.
+    # Used to detect crashes: if a task ever called ``BeaconClient.sink()``
+    # but went silent without a DISCONNECT / DONE, it likely crashed.
+    connect_subq = (
+        select(LogEntry.task_name)
+        .where(col(LogEntry.level) == TASK_CONNECT_LEVEL)
+        .distinct()
+        .subquery()
+    )
+    connect_tasks = {r[0] for r in session.exec(select(connect_subq)).all()}
+
     summaries: list[TaskSummary] = []
     for row in rows:
         status = compute_status(
@@ -94,6 +129,7 @@ def list_task_summaries(
             row.level,
             now=now,
             running_window_seconds=running_window_seconds,
+            has_connect=row.task_name in connect_tasks,
         )
         summaries.append(
             TaskSummary(

@@ -95,7 +95,25 @@ class BeaconClient:
         if resolved_token:
             self._headers["Authorization"] = f"Bearer {resolved_token}"
 
+        # Shared httpx client reused by sink, _post_log, and mark_done.
+        self._http = httpx.Client(timeout=timeout, headers=self._headers)
+
         atexit.register(self._shutdown)
+
+    def _post_log(self, task: str, level: str, message: str) -> None:
+        """Post a single log entry to the server (best-effort)."""
+        try:
+            self._http.post(
+                f"{self._base_url}/api/log",
+                json={
+                    "task": task,
+                    "level": level,
+                    "message": message,
+                    "host": self._default_host,
+                },
+            )
+        except Exception:
+            pass
 
     def sink(
         self,
@@ -112,9 +130,10 @@ class BeaconClient:
 
         endpoint = f"{self._base_url}/api/log"
         source_host = host or self._default_host
-        client = httpx.Client(timeout=self._timeout, headers=self._headers)
 
+        # Register task and send a CONNECT sentinel (best-effort).
         self._done_tasks.add(task)
+        self._post_log(task, "__TASK_CONNECT__", "script started")
 
         def _sink(message: "Message") -> None:
             record = message.record
@@ -126,7 +145,7 @@ class BeaconClient:
                 "host": source_host,
             }
             try:
-                client.post(endpoint, json=payload)
+                self._http.post(endpoint, json=payload)
             except Exception as exc:
                 print(f"[beacon.sink] {exc}", file=sys.stderr)
 
@@ -139,31 +158,18 @@ class BeaconClient:
         ``__TASK_DONE__`` sentinel so the task shows as ``inactive``.
         """
 
-        endpoint = f"{self._base_url}/api/tasks/{task}/done"
         try:
-            with httpx.Client(timeout=self._timeout) as client:
-                client.post(endpoint, headers=self._headers)
+            self._http.post(f"{self._base_url}/api/tasks/{task}/done")
         except Exception as exc:
             print(f"[beacon.mark_done] {exc}", file=sys.stderr)
 
     def _shutdown(self) -> None:
-        """Auto-mark all tracked tasks as done on exit.
-
-        Registered via ``atexit`` and ``__del__`` so it fires whether the
-        script exits normally or the client is garbage-collected.
-        """
-
+        """Send DISCONNECT for all tracked tasks on normal exit."""
         if self._finalized:
             return
         self._finalized = True
         for task in list(self._done_tasks):
-            try:
-                self.mark_done(task)
-            except Exception:
-                pass
-
-    # def __del__(self) -> None:
-    #     self._shutdown()
+            self._post_log(task, "__TASK_DISCONNECT__", "script exited")
 
 
 __all__ = ["BeaconClient"]
