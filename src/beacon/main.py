@@ -99,16 +99,51 @@ def create_app() -> FastAPI:
         request: Request,
         task: str,
         after_id: int = Query(default=0, ge=0),
+        before_id: int = Query(default=0, ge=0),
         limit: int = Query(default=500, ge=1, le=2000),
+        session: Session = Depends(get_session),
+    ) -> HTMLResponse:
+        if before_id > 0:
+            stmt = (
+                select(LogEntry)
+                .where(col(LogEntry.task_name) == task, col(LogEntry.id) < before_id)
+                .order_by(col(LogEntry.id).desc())
+                .limit(limit)
+            )
+            rows = list(session.exec(stmt).all())
+            rows.reverse()
+        else:
+            stmt = (
+                select(LogEntry)
+                .where(col(LogEntry.task_name) == task, col(LogEntry.id) > after_id)
+                .order_by(col(LogEntry.id).asc())
+                .limit(limit)
+            )
+            rows = list(session.exec(stmt).all())
+        entries = [
+            LogEntryRead.model_validate(row, from_attributes=True) for row in rows
+        ]
+        return templates.TemplateResponse(
+            request,
+            "partials/log_lines.html",
+            {"entries": entries},
+        )
+
+    @app.get("/partials/logs/{task}/tail", response_class=HTMLResponse)
+    def log_lines_tail(
+        request: Request,
+        task: str,
+        limit: int = Query(default=200, ge=1, le=2000),
         session: Session = Depends(get_session),
     ) -> HTMLResponse:
         stmt = (
             select(LogEntry)
-            .where(col(LogEntry.task_name) == task, col(LogEntry.id) > after_id)
-            .order_by(col(LogEntry.id).asc())
+            .where(col(LogEntry.task_name) == task)
+            .order_by(col(LogEntry.id).desc())
             .limit(limit)
         )
-        rows = session.exec(stmt).all()
+        rows = list(session.exec(stmt).all())
+        rows.reverse()
         entries = [
             LogEntryRead.model_validate(row, from_attributes=True) for row in rows
         ]
