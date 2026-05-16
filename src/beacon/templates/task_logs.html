@@ -39,6 +39,7 @@ widths via whitespace-pre-wrap + break-words on each row. #}
       {% for lvl in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] %}
       <button type="button" data-level="{{ lvl }}" class="chip level-{{ lvl }}" aria-pressed="true">{{ lvl }}</button>
       {% endfor %}
+      <button type="button" id="sentinel-toggle" class="chip" aria-pressed="true" title="Toggle sentinel markers">≡</button>
     </div>
   </div>
   <div class="flex w-full sm:w-auto flex-wrap items-center gap-2">
@@ -221,6 +222,16 @@ widths via whitespace-pre-wrap + break-words on each row. #}
         container.classList.toggle("hide-" + level, isOff);
       });
     });
+
+    // ── Sentinel toggle ────────────────────────────────────────────
+    var sentinelBtn = document.getElementById("sentinel-toggle");
+    if (sentinelBtn) {
+      sentinelBtn.addEventListener("click", function () {
+        var hidden = container.classList.toggle("hide-sentinel");
+        sentinelBtn.classList.toggle("chip-off", hidden);
+        sentinelBtn.setAttribute("aria-pressed", hidden ? "false" : "true");
+      });
+    }
 
     // ── Search ──────────────────────────────────────────────────────
     function applySearch() {

@@ -106,7 +106,7 @@ def serve(
         None,
         "--running-window-s",
         envvar="BEACON_RUNNING_WINDOW_S",
-        help="Seconds without logs before a task is considered inactive (default 1800).",
+        help="Seconds without logs before a task is considered disconnected (default 1800).",
         show_envvar=True,
         min=1,
     ),

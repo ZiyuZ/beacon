@@ -170,7 +170,7 @@ class BeaconClient:
         """Tell the Beacon server that *task* has finished.
 
         Posts to ``/api/tasks/{task}/done`` which inserts a
-        ``__TASK_DONE__`` sentinel so the task shows as ``inactive``.
+        ``__TASK_DONE__`` sentinel so the task shows as ``disconnected``.
         """
 
         try:
