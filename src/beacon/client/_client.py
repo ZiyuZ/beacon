@@ -22,14 +22,17 @@ Tasks registered via ``.sink()`` are automatically marked as done when
 
 import atexit
 import os
+import shutil
 import socket
+import subprocess
 import sys
 import threading
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 import httpx
+import psutil
 
 if TYPE_CHECKING:
     # ``Message`` only exists in loguru's stub file; importing it at runtime
@@ -86,6 +89,7 @@ class BeaconClient:
         host: str | None = None,
         timeout: float = 3.0,
         heartbeat: float = 0,
+        stats_interval: float = 0,
     ) -> None:
         self._base_url = _resolve_url(url).rstrip("/")
         self._default_host = host or socket.gethostname()
@@ -106,6 +110,11 @@ class BeaconClient:
             t = threading.Thread(target=self._heartbeat_loop, daemon=True)
             t.start()
 
+        if stats_interval > 0:
+            self._stats_interval = stats_interval
+            t = threading.Thread(target=self._sys_stats_loop, daemon=True)
+            t.start()
+
         atexit.register(self._shutdown)
 
     def _heartbeat_loop(self) -> None:
@@ -114,6 +123,96 @@ class BeaconClient:
             time.sleep(self._hb_interval)
             for task in list(self._done_tasks):
                 self._post_log(task, "__TASK_HEARTBEAT__", "hb")
+
+    # ── System stats collection ──────────────────────────────────────────
+
+    @staticmethod
+    def _collect_system_stats() -> dict[str, Any] | None:
+        """Probe CPU / memory / GPU / load and return a flat dict.
+
+        Returns ``None`` when *every* probe failed (unlikely with psutil).
+        GPU stats are best-effort via ``nvidia-smi`` — silently skipped when
+        the command is unavailable or fails.
+        """
+        stats: dict[str, Any] = {}
+
+        try:
+            stats["cpu_percent"] = psutil.cpu_percent(interval=0)
+        except Exception:
+            pass
+
+        try:
+            mem = psutil.virtual_memory()
+            stats["memory_percent"] = round(mem.percent, 1)
+            stats["memory_used_mb"] = round(mem.used / 1024**2, 1)
+            stats["memory_total_mb"] = round(mem.total / 1024**2, 1)
+        except Exception:
+            pass
+
+        try:
+            load = psutil.getloadavg()
+            stats["load_1m"] = round(load[0], 2)
+            stats["load_5m"] = round(load[1], 2)
+            stats["load_15m"] = round(load[2], 2)
+        except Exception:
+            pass
+
+        # GPU — best-effort via nvidia-smi (zero external deps).
+        if shutil.which("nvidia-smi"):
+            try:
+                result = subprocess.run(
+                    [
+                        "nvidia-smi",
+                        "--query-gpu=utilization.gpu,memory.used,memory.total",
+                        "--format=csv,noheader,nounits",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+                if result.returncode == 0:
+                    parts = [p.strip() for p in result.stdout.strip().split(", ")]
+                    if len(parts) >= 3:
+                        stats["gpu_percent"] = float(parts[0])
+                        stats["gpu_memory_used_mb"] = float(parts[1])
+                        stats["gpu_memory_total_mb"] = float(parts[2])
+                        if stats["gpu_memory_total_mb"]:
+                            stats["gpu_memory_percent"] = round(
+                                stats["gpu_memory_used_mb"]
+                                / stats["gpu_memory_total_mb"]
+                                * 100,
+                                1,
+                            )
+            except Exception:
+                pass
+
+        return stats if stats else None
+
+    def _post_sys_stats(self, task: str, stats: dict[str, Any]) -> None:
+        """POST a system stats snapshot for *task* (best-effort)."""
+        try:
+            body = {
+                "task": task,
+                "host": self._default_host,
+                "collection_interval": self._stats_interval,
+                **stats,
+            }
+            self._http.post(
+                f"{self._base_url}/api/sys-stats",
+                json=body,
+            )
+        except Exception:
+            pass
+
+    def _sys_stats_loop(self) -> None:
+        """Background thread: collect and upload system stats periodically."""
+        while not self._finalized:
+            time.sleep(self._stats_interval)
+            stats = self._collect_system_stats()
+            if stats is None:
+                continue
+            for task in list(self._done_tasks):
+                self._post_sys_stats(task, stats)
 
     def _post_log(self, task: str, level: str, message: str) -> None:
         """Post a single log entry to the server (best-effort)."""

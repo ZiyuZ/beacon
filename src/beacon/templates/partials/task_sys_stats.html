@@ -1,0 +1,38 @@
+{% set s = snapshot %}
+{% if s and (s.cpu_percent is not none or s.memory_percent is not none) %}
+{% set stale = not s.fresh %}
+<div class="sys-stat-compact{% if stale %} sys-stat-stale{% endif %}">
+    {% if s.cpu_percent is not none %}
+    <div class="sys-stat-compact-item">
+        <span class="sys-stat-compact-value sys-stat-value-cpu{% if stale %}" style="color:#475569{% endif %}">{{
+            s.cpu_percent | round(0) | int }}%</span>
+        <div class="sys-stat-compact-bar">
+            <div class="sys-stat-compact-fill sys-progress-fill-cpu" style="width:{{ s.cpu_percent }}%"></div>
+        </div>
+        <span class="sys-stat-compact-label">CPU</span>
+    </div>
+    {% endif %}
+    {% if s.memory_percent is not none %}
+    <div class="sys-stat-compact-item">
+        <span class="sys-stat-compact-value sys-stat-value-memory{% if stale %}" style="color:#475569{% endif %}">{{
+            s.memory_percent | round(0) | int }}%</span>
+        <div class="sys-stat-compact-bar">
+            <div class="sys-stat-compact-fill sys-progress-fill-memory" style="width:{{ s.memory_percent }}%"></div>
+        </div>
+        <span class="sys-stat-compact-label">MEM</span>
+    </div>
+    {% endif %}
+    {% if s.gpu_percent is not none %}
+    <div class="sys-stat-compact-item">
+        <span class="sys-stat-compact-value sys-stat-value-gpu{% if stale %}" style="color:#475569{% endif %}">{{
+            s.gpu_percent | round(0) | int }}%</span>
+        <div class="sys-stat-compact-bar">
+            <div class="sys-stat-compact-fill sys-progress-fill-gpu" style="width:{{ s.gpu_percent }}%"></div>
+        </div>
+        <span class="sys-stat-compact-label">GPU</span>
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<span class="sys-stat-compact-na">– –</span>
+{% endif %}

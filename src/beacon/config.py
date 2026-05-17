@@ -11,6 +11,7 @@ class Settings:
     admin_password: str
     sqlite_path: Path
     running_window_seconds: int
+    stats_timeout_multiplier: int
 
     @property
     def database_url(self) -> str:
@@ -25,4 +26,7 @@ def load_settings() -> Settings:
         admin_password=os.environ.get("BEACON_ADMIN_PASSWORD", ""),
         sqlite_path=sqlite_path,
         running_window_seconds=int(os.environ.get("BEACON_RUNNING_WINDOW_S", "1800")),
+        stats_timeout_multiplier=int(
+            os.environ.get("BEACON_STATS_TIMEOUT_MULTIPLIER", "3")
+        ),
     )

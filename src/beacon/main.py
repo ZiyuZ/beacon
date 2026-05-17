@@ -16,6 +16,10 @@ from beacon.api.deps import get_session, get_settings
 from beacon.config import Settings
 from beacon.database import create_db_and_tables
 from beacon.models.log_entry import LogEntry, LogEntryRead
+from beacon.services.system_stats import (
+    get_latest_snapshot,
+    get_latest_snapshots_for_tasks,
+)
 from beacon.services.tasks import list_task_summaries
 
 _TEMPLATES_DIR = Path(str(files("beacon").joinpath("templates")))
@@ -64,10 +68,16 @@ def create_app() -> FastAPI:
             session,
             running_window_seconds=settings.running_window_seconds,
         )
+        task_names = [t.task for t in tasks]
+        snapshots = get_latest_snapshots_for_tasks(
+            session,
+            task_names,
+            multiplier=settings.stats_timeout_multiplier,
+        )
         return templates.TemplateResponse(
             request,
             "tasks.html",
-            {"tasks": tasks},
+            {"tasks": tasks, "snapshots": snapshots},
         )
 
     @app.get("/tasks/{task}", response_class=HTMLResponse)
@@ -88,10 +98,16 @@ def create_app() -> FastAPI:
             session,
             running_window_seconds=settings.running_window_seconds,
         )
+        task_names = [t.task for t in tasks]
+        snapshots = get_latest_snapshots_for_tasks(
+            session,
+            task_names,
+            multiplier=settings.stats_timeout_multiplier,
+        )
         return templates.TemplateResponse(
             request,
             "partials/task_list.html",
-            {"tasks": tasks},
+            {"tasks": tasks, "snapshots": snapshots},
         )
 
     @app.get("/partials/logs/{task}", response_class=HTMLResponse)
@@ -151,6 +167,24 @@ def create_app() -> FastAPI:
             request,
             "partials/log_lines.html",
             {"entries": entries},
+        )
+
+    @app.get("/partials/sys-stats/{task}", response_class=HTMLResponse)
+    def sys_stats_partial(
+        request: Request,
+        task: str,
+        session: Session = Depends(get_session),
+        settings: Settings = Depends(get_settings),
+    ) -> HTMLResponse:
+        snapshot = get_latest_snapshot(
+            session,
+            task,
+            multiplier=settings.stats_timeout_multiplier,
+        )
+        return templates.TemplateResponse(
+            request,
+            "partials/system_stats.html",
+            {"snapshot": snapshot, "task": task},
         )
 
     @app.get("/health")

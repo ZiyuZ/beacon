@@ -16,6 +16,7 @@
 - **客户端**（`beacon.client.BeaconClient`）：Loguru 远端 sink，把日志发到服务端；另有 `beacon-demo` 命令行用于测试日志。
 - **任务状态**：`running`（活跃）、`error`（最新为 ERROR/CRITICAL）、`disconnected`（带心跳静默30秒/无心跳静默30分钟）、`inactive`（正常退出）。支持通过 `POST /api/tasks/{task}/done` 主动标记完成。
 - **心跳**（`BeaconClient(heartbeat=10)`）：可选自动保活。启用后每 N 秒发送心跳包，服务端在心跳停止后约30秒内检测到断联并标记为 `disconnected`，心跳条目在前端自动隐藏。
+- **系统状态**（`BeaconClient(stats_interval=10)`）：可选周期性采集 CPU/内存/GPU/系统负载。通过 `psutil` 和 `nvidia-smi` 采集（无额外依赖），在任务详情页以实时仪表卡片展示，在列表页以紧凑进度条展示。数据超过 3 个采集周期未更新自动灰显。
 
 这不是 ELK/Loki 替代品，也不是多用户平台或 SSH 终端——只适合少量常驻脚本的个人监控面板。
 
@@ -75,7 +76,8 @@ from beacon.client import BeaconClient
 beacon = BeaconClient(
     url="http://your-server:8000",
     token="NSxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    heartbeat=10,  # 可选：每 10 秒自动心跳
+    heartbeat=10,       # 可选：每 10 秒自动心跳
+    stats_interval=10,  # 可选：每 10 秒采集系统状态
 )
 
 logger.add(
@@ -90,6 +92,28 @@ logger.info("started")
 # 任务完成后主动标记结束
 beacon.mark_done(task="training_a")
 ```
+
+### 系统状态采集（可选）
+
+启用 `stats_interval` 参数可以周期性地采集系统指标：
+
+```python
+beacon = BeaconClient(
+    url="http://your-server:8000",
+    token="NSxxxx",
+    stats_interval=10,  # 每 10 秒采集一次
+)
+```
+
+客户端使用 `psutil` 采集 CPU 使用率、内存使用率/用量、系统负载（1m/5m/15m），
+并通过 `nvidia-smi`（自动检测，无需额外安装）采集 GPU 利用率和显存用量。
+
+服务端根据客户端上报的 `collection_interval` 推断数据是否过期：
+超过 `3 × 采集间隔` 未收到新数据即标记为 stale，UI 显示为灰色。
+
+状态面板展示位置：
+- **任务详情页**：5 个彩色仪表卡片（CPU / 内存 / GPU / 显存 / 负载），HTMX 每 8s 刷新
+- **任务列表页**：每行右侧紧凑进度条（CPU / MEM / GPU）
 
 使用 `BeaconClient` 后任务状态完全自动管理：
 1. `beacon.sink(task=...)` → 自动发送 `▶ STARTED` 标记
@@ -199,6 +223,7 @@ curl -X DELETE "http://your-server:8000/api/tasks/training_a" \
 | `BEACON_API_TOKEN` | （首次自动生成） | 共享 Bearer Token；设为空字符串则关闭鉴权 |
 | `BEACON_SQLITE_PATH` | `data/beacon.db` | SQLite 文件路径 |
 | `BEACON_RUNNING_WINDOW_S` | `1800` (30min) | 多少秒无日志视为 `disconnected` |
+| `BEACON_STATS_TIMEOUT_MULTIPLIER` | `3` | 系统状态过期倍率：`采集间隔 × 该值` |
 
 仓库内置 `.env.example`，配合 Compose 时可复制为 `.env`。
 
@@ -221,7 +246,8 @@ docker compose up --build -d
 - 详情页支持按级别筛选、消息子串搜索、多行堆栈折叠（`+N lines`）、向上滚动暂停后底部「▼ N 条新日志」提示、面包屑导航。
 - Tailwind CDN + Inter / JetBrains Mono，中文回退到系统字体（苹方、微软雅黑、思源黑体等），无需额外下载字体包。
 - 任务列表与详情页提供**清空 / 删除**按钮；浏览器会在每个标签页询问一次 Bearer Token（保存在 `sessionStorage`），除非服务端使用 `--no-auth`。
-- 任务卡片使用彩色状态徽标展示 `Running` / `Inactive` / `Disconnected` / `Error`。
+- 任务卡片使用彩色状态徽标展示 `Running` / `Disconnected` / `Error`。
+- **系统状态面板**：任务详情页顶部显示 CPU/内存/GPU/负载的实时仪表卡片，数据过期自动灰显；任务列表页每行右侧显示紧凑进度条。
 - 移动端单列布局，自定义细滚动条。
 
 ## 给 Code Agent 的 Skill
@@ -235,8 +261,8 @@ src/beacon/
 ├── api/             # FastAPI 路由与鉴权依赖
 ├── client/          # BeaconClient 与 beacon-demo（可选 extra `client`）
 ├── database/        # SQLite 引擎与会话
-├── models/          # SQLModel LogEntry
-├── services/        # 任务聚合与状态推断
+├── models/          # SQLModel LogEntry + SystemSnapshot
+├── services/        # 任务聚合、状态推断 + 系统状态服务
 ├── templates/       # Jinja2 模板与 favicon.svg
 ├── cli.py           # `beacon` 入口
 ├── config.py        # 环境变量配置

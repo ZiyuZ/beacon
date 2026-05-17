@@ -214,7 +214,35 @@ Three details that matter:
 - Wrapping in `if beacon_url:` lets the same code run unchanged when
   the env var is not set (CI, offline dev, etc.).
 
-### Step 3: automatic heartbeat (recommended for long-running scripts)
+### Step 3: system stats (optional)
+
+Enable periodic CPU / memory / GPU / load telemetry with `stats_interval`.
+The client uses `psutil` (cross-platform) and auto-detects `nvidia-smi`
+for GPU metrics — no extra libraries needed.
+
+```python
+beacon = BeaconClient(
+    url="...",
+    token="...",
+    stats_interval=10,  # collect system stats every 10 seconds
+)
+```
+
+The server infers staleness from `collection_interval`: data older than
+`3 × interval` is marked stale and displayed as gray gauge cards in the
+UI. Stats refresh via HTMX every 8s on the detail page.
+
+Stat cards shown on the **task detail page**:
+- 🖥 **CPU** — utilization % with cyan progress bar
+- 🧠 **Memory** — usage % + used/total MB with violet bar
+- 🎮 **GPU** — utilization % with emerald bar (hidden if no GPU detected)
+- 📀 **VRAM** — GPU memory % + used/total MB with orange bar
+- 📊 **Load** — 1m / 5m / 15m load averages
+
+On the **task list page**, compact CPU / MEM / GPU bars appear next to
+each task row.
+
+### Step 4: automatic heartbeat (recommended for long-running scripts)
 
 Enable built-in heartbeats for fast disconnection detection:
 
@@ -229,7 +257,7 @@ detects disconnection within ~30s and marks the task as `disconnected`
 
 Without heartbeats, Beacon detects silence after 30 minutes.
 
-### Step 4: mark a task as done (optional)
+### Step 5: mark a task as done (optional)
 
 When a script finishes cleanly you can explicitly tell Beacon the task
 is complete so it shows as `disconnected` immediately instead of waiting
@@ -347,6 +375,36 @@ Required fields: `task`, `level`, `message`. Optional:
 - **Don't put the bearer token in source control**. Read from env, a
   local `.env` (gitignored), or your deploy secret manager.
 
+## System stats API
+
+### `POST /api/sys-stats`
+
+Record a system stats snapshot for a task (sent automatically by
+`BeaconClient` when `stats_interval > 0`).
+
+```json
+{
+  "task": "training_a",
+  "cpu_percent": 45.2,
+  "memory_percent": 62.8,
+  "memory_used_mb": 8192,
+  "memory_total_mb": 16384,
+  "gpu_percent": 78.0,
+  "gpu_memory_percent": 35.5,
+  "gpu_memory_used_mb": 4096,
+  "gpu_memory_total_mb": 8192,
+  "load_1m": 1.5,
+  "load_5m": 1.2,
+  "load_15m": 0.9,
+  "collection_interval": 10.0
+}
+```
+
+### `GET /api/sys-stats/{task}`
+
+Returns the latest snapshot with a computed `fresh` boolean.
+`fresh=false` when data age > `3 × collection_interval`.
+
 ## Common patterns
 
 ### Multiple scripts in one repo
@@ -407,6 +465,9 @@ again — sinks do not survive `fork`/`spawn` automatically.
 | Task stays `running` after script exits | No `mark_done()` called, waiting for time window | Call `mark_done()` at end of script, or just wait `running_window_seconds` (default 30min) |
 | `[beacon.mark_done]` on stderr | Network issue or wrong URL | Verify the server URL and that the task exists |
 | Recursion / spam in stderr | Custom `logger.exception` inside a sink fallback | Beacon's sink uses `print(..., file=sys.stderr)` for this exact reason; do not replace it with `logger.exception` |
+| Stats cards show `– –` on task list | `stats_interval` not set or first snapshot not yet sent | Set `BeaconClient(stats_interval=...)` and wait one cycle |
+| Stats cards are gray / stale | No data received for 3+ collection cycles | Check if the client process is still running; the data will resume when new snapshots arrive |
+| GPU card is missing | `nvidia-smi` not found on the client machine | Expected on non-NVIDIA machines; only CPU/memory/load will display |
 
 ## Don't do this
 

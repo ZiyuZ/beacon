@@ -39,7 +39,8 @@ widths via whitespace-pre-wrap + break-words on each row. #}
       {% for lvl in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] %}
       <button type="button" data-level="{{ lvl }}" class="chip level-{{ lvl }}" aria-pressed="true">{{ lvl }}</button>
       {% endfor %}
-      <button type="button" id="sentinel-toggle" class="chip" aria-pressed="true" title="Toggle sentinel markers">≡</button>
+      <button type="button" id="sentinel-toggle" class="chip" aria-pressed="true"
+        title="Toggle sentinel markers">≡</button>
     </div>
   </div>
   <div class="flex w-full sm:w-auto flex-wrap items-center gap-2">
@@ -57,6 +58,10 @@ widths via whitespace-pre-wrap + break-words on each row. #}
       <time id="updated-at" data-relative datetime="">never</time>
     </span>
   </div>
+</div>
+
+<div id="sys-stats-panel" hx-get="/partials/sys-stats/{{ task | urlencode }}" hx-trigger="every 8s, load"
+  hx-swap="innerHTML">
 </div>
 
 <div id="log-container"

@@ -1,0 +1,90 @@
+{% if snapshot and (snapshot.cpu_percent is not none or snapshot.memory_percent is not none) %}
+{% set stale = not snapshot.fresh %}
+{% set ns = snapshot %}
+<div class="sys-stats{% if stale %} sys-stat-stale-all{% endif %}">
+    {% if ns.cpu_percent is not none %}
+    <div class="sys-stat-card{% if stale %} sys-stat-stale{% endif %}">
+        <div class="sys-stat-header">
+            <span class="sys-stat-icon">🖥</span>
+            <span>CPU</span>
+        </div>
+        <div class="sys-stat-value sys-stat-value-cpu">{{ ns.cpu_percent | round(0) | int }}<span
+                class="sys-stat-unit">%</span></div>
+        <div class="sys-progress-track">
+            <div class="sys-progress-fill sys-progress-fill-cpu" style="width:{{ ns.cpu_percent }}%"></div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if ns.memory_percent is not none %}
+    <div class="sys-stat-card{% if stale %} sys-stat-stale{% endif %}">
+        <div class="sys-stat-header">
+            <span class="sys-stat-icon">🧠</span>
+            <span>Memory</span>
+        </div>
+        <div class="sys-stat-value sys-stat-value-memory">{{ ns.memory_percent | round(0) | int }}<span
+                class="sys-stat-unit">%</span></div>
+        <div class="sys-progress-track">
+            <div class="sys-progress-fill sys-progress-fill-memory" style="width:{{ ns.memory_percent }}%"></div>
+        </div>
+        {% if ns.memory_used_mb is not none and ns.memory_total_mb is not none %}
+        <div class="sys-stat-sub">{{ ns.memory_used_mb | round(0) | int }} / {{ ns.memory_total_mb | round(0) | int }}
+            MB</div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if ns.gpu_percent is not none %}
+    <div class="sys-stat-card{% if stale %} sys-stat-stale{% endif %}">
+        <div class="sys-stat-header">
+            <span class="sys-stat-icon">🎮</span>
+            <span>GPU</span>
+        </div>
+        <div class="sys-stat-value sys-stat-value-gpu">{{ ns.gpu_percent | round(0) | int }}<span
+                class="sys-stat-unit">%</span></div>
+        <div class="sys-progress-track">
+            <div class="sys-progress-fill sys-progress-fill-gpu" style="width:{{ ns.gpu_percent }}%"></div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if ns.gpu_memory_percent is not none %}
+    <div class="sys-stat-card{% if stale %} sys-stat-stale{% endif %}">
+        <div class="sys-stat-header">
+            <span class="sys-stat-icon">📀</span>
+            <span>VRAM</span>
+        </div>
+        <div class="sys-stat-value sys-stat-value-gpu-mem">{{ ns.gpu_memory_percent | round(0) | int }}<span
+                class="sys-stat-unit">%</span></div>
+        <div class="sys-progress-track">
+            <div class="sys-progress-fill sys-progress-fill-gpu-mem" style="width:{{ ns.gpu_memory_percent }}%"></div>
+        </div>
+        {% if ns.gpu_memory_used_mb is not none and ns.gpu_memory_total_mb is not none %}
+        <div class="sys-stat-sub">{{ ns.gpu_memory_used_mb | round(0) | int }} / {{ ns.gpu_memory_total_mb | round(0) |
+            int }} MB</div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if ns.load_1m is not none %}
+    <div class="sys-stat-card{% if stale %} sys-stat-stale{% endif %}">
+        <div class="sys-stat-header">
+            <span class="sys-stat-icon">📊</span>
+            <span>Load</span>
+        </div>
+        <div class="sys-stat-value sys-stat-value-cpu" style="font-size:16px;">{{ ns.load_1m }}<span
+                class="sys-stat-unit">/ {{ ns.load_5m }}</span></div>
+        <div class="sys-stat-sub">15m: {{ ns.load_15m }}</div>
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<div class="sys-stat-empty{% if snapshot is not none and not snapshot.fresh %} sys-stat-stale{% endif %}">
+    {% if snapshot is not none and not snapshot.fresh %}
+    ⏸ Stats stale — last seen <time data-relative datetime="{{ snapshot.timestamp | local_iso }}">{{ snapshot.timestamp
+        | local_time }}</time>
+    {% else %}
+    · · No system stats available · ·
+    {% endif %}
+</div>
+{% endif %}

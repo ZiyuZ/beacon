@@ -14,6 +14,11 @@ from beacon.api.deps import (
 )
 from beacon.config import Settings
 from beacon.models.log_entry import LogEntry, LogEntryCreate, LogEntryRead
+from beacon.models.system_snapshot import SystemSnapshotCreate, SystemSnapshotRead
+from beacon.services.system_stats import (
+    get_latest_snapshot,
+    save_snapshot,
+)
 from beacon.services.tasks import (
     TASK_DONE_LEVEL,
     TaskSummary,
@@ -190,3 +195,37 @@ def mark_task_done(
     session.add(entry)
     session.commit()
     return {"ok": True}
+
+
+# ── System stats ────────────────────────────────────────────────────────
+
+
+@router.post("/sys-stats")
+def ingest_sys_stats(
+    payload: SystemSnapshotCreate,
+    request: Request,
+    settings: Settings = Depends(get_settings),
+    session: Session = Depends(get_session),
+) -> dict[str, bool]:
+    """Record a system stats snapshot for a task."""
+    host = payload.host
+    if host is None and request.client is not None:
+        host = request.client.host
+
+    stats_dict = payload.model_dump()
+    save_snapshot(session, payload.task, host, payload.collection_interval, stats_dict)
+    return {"ok": True}
+
+
+@router.get("/sys-stats/{task}", response_model=SystemSnapshotRead | None)
+def read_sys_stats(
+    task: str,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+) -> SystemSnapshotRead | None:
+    """Return the latest system stats snapshot for *task*."""
+    return get_latest_snapshot(
+        session,
+        task,
+        multiplier=settings.stats_timeout_multiplier,
+    )

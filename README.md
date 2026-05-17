@@ -28,6 +28,11 @@ no observability stack to babysit.
   If heartbeats stop, the server detects disconnection within ~30s and
   marks the task as `disconnected`. Heartbeat entries are hidden from
   the log view automatically.
+- **System stats** (`BeaconClient(stats_interval=10)`): optional periodic
+  CPU / memory / GPU / load telemetry. Collected via `psutil` and
+  `nvidia-smi` (no extra dependencies). Displayed as live gauge cards
+  on the task detail page and as compact bars on the task list.
+  Stale data (3× the collection interval without updates) fades to gray.
 
 What it is not: an ELK/Loki replacement, a multi-user system, an SSH
 terminal. It is a personal panel for a handful of long-running scripts.
@@ -95,7 +100,8 @@ from beacon.client import BeaconClient
 beacon = BeaconClient(
     url="http://your-server:8000",
     token="NSxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    heartbeat=10,  # optional: auto heartbeat every 10s
+    heartbeat=10,       # optional: auto heartbeat every 10s
+    stats_interval=10,  # optional: collect CPU/GPU/load every 10s
 )
 
 logger.add(
@@ -107,6 +113,32 @@ logger.add(
 
 logger.info("started")
 ```
+
+### System stats (optional)
+
+Enable periodic system telemetry collection with `stats_interval`:
+
+```python
+beacon = BeaconClient(
+    url="http://your-server:8000",
+    token="NSxxxx",
+    stats_interval=10,  # seconds between snapshots
+)
+```
+
+The client collects CPU %, memory %, GPU util, GPU VRAM, and system
+load (1m / 5m / 15m) using `psutil` and `nvidia-smi`, then POSTs them
+to the server. GPU detection happens automatically when `nvidia-smi`
+is available — no extra libraries needed.
+
+The server uses the client's `collection_interval` to infer staleness:
+data older than `3 × interval` is marked stale and displayed as gray
+cards. If telemetry stops, the UI shows "stale" after ~3 missed cycles.
+
+Stats appear as:
+- **Task detail page**: 5 gauge cards (CPU / Memory / GPU / VRAM / Load)
+  with progress bars and color gradients. Refreshed via HTMX every 8s.
+- **Task list page**: compact bars next to each task (CPU / MEM / GPU).
 
 ### Task lifecycle (automatic)
 
@@ -245,7 +277,61 @@ in one shot. Returns `{"ok": true, "deleted_tasks": T, "deleted_rows": R}`
 where `T` is the number of task names removed and `R` is total deleted log
 rows.
 
-`POST /api/tasks/{task}/done` marks a task as finished by inserting a
+### `POST /api/sys-stats`
+
+Record a system stats snapshot for a task.
+
+```json
+{
+  "task": "training_a",
+  "cpu_percent": 45.2,
+  "memory_percent": 62.8,
+  "memory_used_mb": 8192,
+  "memory_total_mb": 16384,
+  "gpu_percent": 78.0,
+  "gpu_memory_percent": 35.5,
+  "gpu_memory_used_mb": 4096,
+  "gpu_memory_total_mb": 8192,
+  "load_1m": 1.5,
+  "load_5m": 1.2,
+  "load_15m": 0.9,
+  "collection_interval": 10.0
+}
+```
+
+All fields except `task` are optional. Returns `{"ok": true}`.
+
+### `GET /api/sys-stats/{task}`
+
+Returns the latest snapshot for a task, with a computed `fresh` boolean:
+
+```json
+{
+  "id": 1,
+  "task_name": "training_a",
+  "source_host": "desktop-a",
+  "timestamp": "2026-05-17T12:00:00Z",
+  "collection_interval": 10.0,
+  "cpu_percent": 45.2,
+  "memory_percent": 62.8,
+  "memory_used_mb": 8192.0,
+  "memory_total_mb": 16384.0,
+  "gpu_percent": 78.0,
+  "gpu_memory_percent": 35.5,
+  "gpu_memory_used_mb": 4096.0,
+  "gpu_memory_total_mb": 8192.0,
+  "load_1m": 1.5,
+  "load_5m": 1.2,
+  "load_15m": 0.9,
+  "fresh": true
+}
+```
+
+`fresh=false` when the data is older than `3 × collection_interval`.
+
+### `POST /api/tasks/{task}/done`
+
+Marks a task as finished by inserting a
 `__TASK_DONE__` sentinel entry. The task immediately shows as `disconnected`
 on the dashboard, regardless of the time window. If the script runs again
 and sends new logs, the sentinel is overridden and the task returns to
@@ -272,6 +358,7 @@ this same set so flags and env behave identically.
 | `BEACON_ADMIN_PASSWORD`   | _(auto-generated)_ | Admin password used by the Web UI login to obtain a JWT.      |
 | `BEACON_SQLITE_PATH`      | `data/beacon.db`   | Where to put the SQLite file.                                 |
 | `BEACON_RUNNING_WINDOW_S` | `1800` (30min)     | Seconds without logs before a task is considered `disconnected`. |
+| `BEACON_STATS_TIMEOUT_MULTIPLIER` | `3` | Multiplier applied to `collection_interval` to determine staleness. |
 
 A starter `.env.example` is checked in; copy to `.env` for compose use.
 
@@ -329,8 +416,8 @@ src/beacon/
 ├── api/             # FastAPI routes + auth dependency
 ├── client/          # BeaconClient + beacon-demo CLI (the `client` extra)
 ├── database/        # SQLite engine + session
-├── models/          # SQLModel LogEntry
-├── services/        # task aggregation and status logic
+├── models/          # SQLModel LogEntry + SystemSnapshot
+├── services/        # task aggregation, status + system stats logic
 ├── templates/       # Jinja2 + favicon.svg
 ├── cli.py           # `beacon` console script
 ├── config.py        # env-driven Settings
