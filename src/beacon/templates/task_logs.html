@@ -121,7 +121,12 @@ widths via whitespace-pre-wrap + break-words on each row. #}
       var before = window.beaconMinId;
       var res = await fetch("/partials/logs/" + TASK + "?before_id=" + before + "&limit=200");
       var html = await res.text();
-      if (!html.trim()) { window.beaconLoadingOlder = false; return; }
+      if (!html.trim()) {
+        loadOlder.classList.add("hidden");
+        disconnectLoadOlderObserver();
+        window.beaconLoadingOlder = false;
+        return;
+      }
       var scrollTarget = stream.firstChild;
       stream.insertAdjacentHTML("afterbegin", html);
       updateCursor();
@@ -135,7 +140,10 @@ widths via whitespace-pre-wrap + break-words on each row. #}
         scrollTarget.scrollIntoView({ block: "start" });
       }
       window.beaconLoadingOlder = false;
-      if (html.trim().length < 500) loadOlder.classList.add("hidden");
+      if (html.trim().length < 500) {
+        loadOlder.classList.add("hidden");
+        disconnectLoadOlderObserver();
+      }
       if (search.value) applySearch();
     };
 
@@ -159,8 +167,15 @@ widths via whitespace-pre-wrap + break-words on each row. #}
     // ── Scroll-to-top triggers loading older ────────────────────────
     let loadOlderObserver = null;
 
+    function disconnectLoadOlderObserver() {
+      if (loadOlderObserver) {
+        loadOlderObserver.disconnect();
+        loadOlderObserver = null;
+      }
+    }
+
     function setupLoadOlderObserver() {
-      if (loadOlderObserver) loadOlderObserver.disconnect();
+      disconnectLoadOlderObserver();
       loadOlderObserver = new IntersectionObserver(function (entries) {
         if (entries[0].isIntersecting && !window.beaconLoadingOlder && window.beaconMinId > 1) {
           window.beaconLoadOlder();
