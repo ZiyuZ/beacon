@@ -1,9 +1,8 @@
-{% if snapshot and (snapshot.cpu_percent is not none or snapshot.memory_percent is not none) %}
-{% set stale = not snapshot.fresh %}
+{% if snapshot and snapshot.fresh and (snapshot.cpu_percent is not none or snapshot.memory_percent is not none) %}
 {% set ns = snapshot %}
-<div class="sys-stats{% if stale %} sys-stat-stale-all{% endif %}">
+<div class="sys-stats">
     {% if ns.cpu_percent is not none %}
-    <div class="sys-stat-card{% if stale %} sys-stat-stale{% endif %}">
+    <div class="sys-stat-card">
         <div class="sys-stat-header">
             <span class="sys-stat-icon">🖥</span>
             <span>CPU</span>
@@ -17,7 +16,7 @@
     {% endif %}
 
     {% if ns.memory_percent is not none %}
-    <div class="sys-stat-card{% if stale %} sys-stat-stale{% endif %}">
+    <div class="sys-stat-card">
         <div class="sys-stat-header">
             <span class="sys-stat-icon">🧠</span>
             <span>Memory</span>
@@ -35,7 +34,7 @@
     {% endif %}
 
     {% if ns.gpu_percent is not none %}
-    <div class="sys-stat-card{% if stale %} sys-stat-stale{% endif %}">
+    <div class="sys-stat-card">
         <div class="sys-stat-header">
             <span class="sys-stat-icon">🎮</span>
             <span>GPU</span>
@@ -49,7 +48,7 @@
     {% endif %}
 
     {% if ns.gpu_memory_percent is not none %}
-    <div class="sys-stat-card{% if stale %} sys-stat-stale{% endif %}">
+    <div class="sys-stat-card">
         <div class="sys-stat-header">
             <span class="sys-stat-icon">📀</span>
             <span>VRAM</span>
@@ -67,7 +66,7 @@
     {% endif %}
 
     {% if ns.load_1m is not none %}
-    <div class="sys-stat-card{% if stale %} sys-stat-stale{% endif %}">
+    <div class="sys-stat-card">
         <div class="sys-stat-header">
             <span class="sys-stat-icon">📊</span>
             <span>Load</span>
@@ -79,12 +78,5 @@
     {% endif %}
 </div>
 {% else %}
-<div class="sys-stat-empty{% if snapshot is not none and not snapshot.fresh %} sys-stat-stale{% endif %}">
-    {% if snapshot is not none and not snapshot.fresh %}
-    ⏸ Stats stale — last seen <time data-relative datetime="{{ snapshot.timestamp | local_iso }}">{{ snapshot.timestamp
-        | local_time }}</time>
-    {% else %}
-    · · No system stats available · ·
-    {% endif %}
-</div>
+<div class="sys-stat-empty">· · No system stats available · ·</div>
 {% endif %}

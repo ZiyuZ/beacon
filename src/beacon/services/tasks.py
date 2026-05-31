@@ -33,6 +33,8 @@ class TaskSummary(BaseModel):
     last_level: str
     last_message: str
     last_id: int
+    display_level: str | None = None
+    display_message: str | None = None
 
 
 def _ensure_aware(dt: datetime) -> datetime:
@@ -111,6 +113,20 @@ def list_task_summaries(
     )
     rows = session.exec(stmt).all()
 
+    # Also fetch the latest non-sentinel entry per task for display.
+    latest_display_subq = (
+        select(LogEntry.task_name, func.max(LogEntry.id).label("max_id"))
+        .where(col(LogEntry.level).notin_(SENTINEL_LEVELS))
+        .group_by(LogEntry.task_name)
+        .subquery()
+    )
+    display_stmt = select(LogEntry).join(
+        latest_display_subq, col(LogEntry.id) == latest_display_subq.c.max_id
+    )
+    display_rows: dict[str, LogEntry] = {
+        r.task_name: r for r in session.exec(display_stmt).all()
+    }
+
     summaries: list[TaskSummary] = []
     for row in rows:
         # If the latest entry is a HEARTBEAT, use a shorter timeout (30s)
@@ -125,6 +141,8 @@ def list_task_summaries(
             running_window_seconds=running_window_seconds,
             heartbeat_timeout=hb_timeout,
         )
+        # Use the latest non-sentinel entry for display fields.
+        display_row = display_rows.get(row.task_name)
         summaries.append(
             TaskSummary(
                 task=row.task_name,
@@ -133,6 +151,8 @@ def list_task_summaries(
                 last_level=row.level,
                 last_message=row.message,
                 last_id=row.id or 0,
+                display_level=display_row.level if display_row else None,
+                display_message=display_row.message if display_row else None,
             )
         )
     return summaries
