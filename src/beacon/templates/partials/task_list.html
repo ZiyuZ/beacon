@@ -51,11 +51,14 @@
     <time class="shrink-0 text-[11px] tabular-nums text-slate-500" data-relative
       datetime="{{ task.last_seen | local_iso }}">{{ task.last_seen | local_time }}</time>
   </a>
-  <div class="flex shrink-0 items-center px-2">
-    {% with snapshot = snapshots.get(task.task) if snapshots else None %}
+  {% set _snap = snapshots.get(task.task) if snapshots else None %}
+  {% if _snap and _snap.fresh and (_snap.cpu_percent is not none or _snap.memory_percent is not none) %}
+  <div class="flex shrink-0 items-center pl-2 pr-1">
+    {% with snapshot = _snap %}
     {% include "partials/task_sys_stats.html" %}
     {% endwith %}
   </div>
+  {% endif %}
   <div class="flex shrink-0 items-center px-1">
     <button type="button" class="rounded-md p-2 text-slate-500 transition hover:bg-red-950/50 hover:text-red-300"
       title="Delete all logs for this task" data-task="{{ task.task }}"
