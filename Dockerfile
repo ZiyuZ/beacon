@@ -1,11 +1,13 @@
 FROM python:3.13-slim
 
+RUN apt-get update && apt-get upgrade -y && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1
 
-COPY --from=ghcr.io/astral-sh/uv:0.11.14 /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.11.17 /uv /usr/local/bin/uv
 
 WORKDIR /app
 
