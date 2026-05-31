@@ -21,7 +21,7 @@
   <span class="log-row-meta">
     <span class="log-time">{{ entry.timestamp | local_time }}</span>
     <span class="level-{{ entry.level }} font-semibold log-level">
-      <span class="ll-full">[{{ "%-8s" | format(entry.level) }}]</span>
+      <span class="ll-full">[{{ entry.level }}]</span>
       <span class="ll-abbr">[{{ LVL.get(entry.level.upper(), "?") }}]</span>
     </span>
   </span>
