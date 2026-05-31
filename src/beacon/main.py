@@ -81,11 +81,21 @@ def create_app() -> FastAPI:
         )
 
     @app.get("/tasks/{task}", response_class=HTMLResponse)
-    def task_detail(request: Request, task: str) -> HTMLResponse:
+    def task_detail(
+        request: Request,
+        task: str,
+        session: Session = Depends(get_session),
+        settings: Settings = Depends(get_settings),
+    ) -> HTMLResponse:
+        tasks = list_task_summaries(
+            session,
+            running_window_seconds=settings.running_window_seconds,
+        )
+        task_summary = next((t for t in tasks if t.task == task), None)
         return templates.TemplateResponse(
             request,
             "task_logs.html",
-            {"task": task},
+            {"task": task, "task_summary": task_summary},
         )
 
     @app.get("/partials/tasks", response_class=HTMLResponse)

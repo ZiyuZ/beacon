@@ -22,6 +22,14 @@ widths via whitespace-pre-wrap + break-words on each row. #}
   </a>
   <span class="shrink-0 text-slate-600">/</span>
   <span class="truncate text-base font-medium text-slate-300">{{ task }}</span>
+  {% if task_summary %}
+  {% set sk = task_summary.status.value %}
+  {% set sl = "Running" if sk == "running" else ("Error" if sk == "error" else "Disconnected") %}
+  <span class="status-pill status-{{ sk }}">
+    <span class="status-dot status-dot-{{ sk }}" aria-hidden="true"></span>
+    {{ sl }}
+  </span>
+  {% endif %}
 </div>
 {% endblock %}
 
