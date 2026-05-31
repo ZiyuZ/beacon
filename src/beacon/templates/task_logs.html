@@ -157,10 +157,28 @@ widths via whitespace-pre-wrap + break-words on each row. #}
     }
 
     // ── Scroll-to-top triggers loading older ────────────────────────
-    container.addEventListener("scroll", function () {
-      if (container.scrollTop < 80 && !window.beaconLoadingOlder && window.beaconMinId > 1) {
-        window.beaconLoadOlder();
+    let loadOlderObserver = null;
+
+    function setupLoadOlderObserver() {
+      if (loadOlderObserver) loadOlderObserver.disconnect();
+      loadOlderObserver = new IntersectionObserver(function (entries) {
+        if (entries[0].isIntersecting && !window.beaconLoadingOlder && window.beaconMinId > 1) {
+          window.beaconLoadOlder();
+        }
+      }, { root: container, rootMargin: "200px 0px 0px 0px" });
+      if (!loadOlder.classList.contains("hidden")) {
+        loadOlderObserver.observe(loadOlder);
       }
+    }
+
+    // Patch showLoadOlder to also start observing.
+    var _origShowLoadOlder = showLoadOlder;
+    showLoadOlder = function () {
+      _origShowLoadOlder();
+      setupLoadOlderObserver();
+    };
+
+    container.addEventListener("scroll", function () {
       const distance =
         container.scrollHeight - container.scrollTop - container.clientHeight;
       if (distance < 24 && !following) setFollowing(true);
